@@ -7,6 +7,9 @@ RSpec::Core::RakeTask.new("spec")
 task default: :spec
 
 namespace :ci do
+  desc "Run specs in CI"
   task specs: :spec
-  task standardrb: :standardrb
+
+  desc "Run standard RB in CI"
+  task standardrb: :standard
 end
