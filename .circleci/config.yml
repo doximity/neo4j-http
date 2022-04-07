@@ -9,8 +9,9 @@ executors:
     docker:
       - image: cimg/ruby:2.7
         environment:
-          BUNDLE_VERSION: "~> 1.17"
-      - image: neo4j:3.5.29-enterprise
+          - BUNDLE_VERSION: "~> 1.17"
+          - NEO4J_URL: "http://127.0.0.1:7474"
+      - image: neo4j:4.3.9-enterprise
         environment:
           NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
           NEO4J_AUTH: "none"
@@ -59,6 +60,14 @@ jobs:
           key: v1-bundle-{{ checksum "Gemfile.lock" }}-
           paths:
             - vendor/bundle
+      - run:
+          name: Wait for neo4j
+          command: |
+            until `nc -z 127.0.0.1 7474`; do
+            echo 'Waiting for Neo4j container...'
+              sleep 1
+            done
+            echo 'Neo4j container is up'
       - run:
           name: Run Tests
           command: bundle exec rake ci:specs
