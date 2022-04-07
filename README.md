@@ -91,7 +91,11 @@ node_client = Neo4j::Http::NodeClient.new(cypher_client)
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install dependencies.
+
+To run specs, you'll need a running neo4j instance available at `localhst:7474`.  If you have Docker installed, this is easily done by using the provided [docker-file](https://github.com/doximity/neo4j-http/blob/master/docker-compose.yml) - simply run `docker-compose up` within the project directory, and once running, you can then, run `rake spec` to run the tests in another terminal.
+
+You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
