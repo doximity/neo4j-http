@@ -68,7 +68,7 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
       create_node(uuid: "Uuid2", name: "Bar")
       create_node(uuid: "Uuid3", name: "Baz")
 
-      nodes = client.find_nodes_by(label: "Test", attributes: { uuid: ["Uuid1", "Uuid3"] })
+      nodes = client.find_nodes_by(label: "Test", attributes: {uuid: ["Uuid1", "Uuid3"]})
 
       expect(nodes.length).to eq(2)
       names = nodes.map { |node| node["name"] }
@@ -76,7 +76,7 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
     end
 
     it "returns nil when no node is found" do
-      node = client.find_node_by(label: "Test", attributes: { uuid: "MyUuid" })
+      node = client.find_node_by(label: "Test", attributes: {uuid: "MyUuid"})
       expect(node).to be_nil
     end
   end

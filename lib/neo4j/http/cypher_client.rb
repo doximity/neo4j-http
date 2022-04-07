@@ -19,8 +19,8 @@ module Neo4j
       def execute_cypher(cypher, parameters = {})
         request_body = {
           statements: [
-            { statement: cypher,
-             parameters: parameters.as_json }
+            {statement: cypher,
+             parameters: parameters.as_json}
           ]
         }
 
@@ -88,7 +88,7 @@ module Neo4j
       def authentication_headers
         return {} if auth_token.blank?
 
-        { "Authentication" => "Basic #{auth_token}" }
+        {"Authentication" => "Basic #{auth_token}"}
       end
     end
   end

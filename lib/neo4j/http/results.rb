@@ -15,7 +15,7 @@ module Neo4j
           meta = result["meta"] || []
           compacted_data = row.each_with_index.map do |attributes, index|
             row_meta = meta[index] || {}
-            attributes["_neo4j_meta_data"] = row_meta if attributes.kind_of?(Hash)
+            attributes["_neo4j_meta_data"] = row_meta if attributes.is_a?(Hash)
             attributes
           end
 
