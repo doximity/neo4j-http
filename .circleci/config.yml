@@ -74,9 +74,9 @@ jobs:
       - store_test_results:
           name: Store test results
           path: tmp/test-results
-       - run:
-           name: Run StandardRB formatting
-           command: bundle exec rake ci:standardrb
+      - run:
+          name: Run StandardRB formatting
+          command: bundle exec rake ci:standardrb
       - persist_to_workspace:
           root: .
           paths:
