@@ -1,6 +1,7 @@
 require "bundler/setup"
 require "neo4j/http"
 require "pry"
+require "support/neo4j_spec_helpers"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
@@ -12,4 +13,6 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  include Neo4jSpecHelpers
 end

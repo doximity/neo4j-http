@@ -1,6 +1,11 @@
 # Neo4j::Http
 
-The `Neo4j::Http` gem provides `Neo4j::Http::Client` as a thin wrapper around the [Neo4j HTTP API](https://neo4j.com/docs/http-api/current/).
+The `Neo4j::Http` gem provides `a thin wrapper around the [Neo4j HTTP API](https://neo4j.com/docs/http-api/current/) (not the legacy REST api which was removed in 4.0). It works with Neo4j 3.5 through the latest release (at the time of this writing is 4.4)
+
+## Why a new gem?
+The available gems to interact with Neo4j are generally: out of date relying on legacy APIs removed in 4.x, require the use of JRuby, or out of date C bindings.
+
+The goal of this gem is to provide a dependency free Ruby implementation that provides a simple wrapper to the [Neo4j HTTP API](https://neo4j.com/docs/http-api/current/)  to do most of what applications may need in order to leverage the power Neo4j provides.
 
 ## Installation
 
@@ -18,13 +23,96 @@ Or install it yourself as:
 
     $ gem install neo4j-http
 
+## Configuration
+
+The client is configured by default via a set of environment variables from [Neo4j::Http::Configuration](https://github.com/doximity/neo4j-http/blob/master/lib/neo4j/http/configuration.rb):
+
+* `NEO4J_URL`  - The base URL to connect to Neo4j at
+* `NEO4J_USER` - The user name to use when authenticating to neo4j
+* `NEO4J_PASSWORD` - The password of the user to be used for authentication
+* `NEO4J_DATABASE` - The database name to be used when connecting.  By default this will be nil and the path used for connecting to Neo4j wil be `/db/data/transaction/commit` to make it compliant with v3.5 of neo4j
+* `NEO4J_HTTP_USER_AGENT` - The user agent name provided in the request - defaults to `Ruby Neo4j Http Client`
+* `NEO4J_REQUEST_TIMEOUT_IN_SECONDS` - The number of seconds for the http request to time out if provided, defaults to nil
+
+These configuration values can also be set during initalization like:
+
+```ruby
+Neo4j::Http.configure do |config|
+  config.request_timeout_in_seconds = 42
+end
+```
+
+## Usage
+
+The core interface can be directly accessed on `Neo4::Http::Client` -
+
+### Execute arbitrary cypher commands
+```ruby
+Neo4j::Http::Client.execute_cypher('MATCH (n:User{id: $id}) return n LIMIT 25', id: 42)
+```
+
+### Upsert, find and delete nodes
+```ruby
+node = Neo4j::Http::Node.new(label: "User", uuid: SecureRandom.uuid)
+Neo4j::Http::Client.upsert_node(node)
+Neo4j::Http::Client.find_node_by(label: "User", uuid: node.uuid)
+Neo4j::Http::Client.find_nodes_by(label: "User", name: "Testing")
+Neo4j::Http::Client.delete_node(node)
+```
+
+### Create a new relationship, also creating the nodes if they do not exist
+```ruby
+user1 = Neo4j::Http::Node.new(label: "User", uuid: SecureRandom.uuid)
+user2 = Neo4j::Http::Node.new(label: "User", uuid: SecureRandom.uuid)
+relationship = Neo4j::Http::Relationship.new(label: "KNOWS")
+Neo4j::Http::Client.upsert_relationship(relationship: relationship, from: user1, to: user2, create_nodes: true)
+```
+
+### Find an existing relationship
+```ruby
+Neo4j::Http::Client.find_relationship(relationship: relationship, from: user1, to: user2)
+```
+
+### Delete the relationship if it exists
+```ruby
+Neo4j::Http::Client.delete_relationship(relationship: relationship, from: user1, to: user2)
+```
+
+Each of the methods exposed on `Neo4j::Http::Client` above are provided by instances of each of the following adapters:
+* `Neo4j::Http::CypherClient` - provides an `execute_cypher` method which sends raw cypher commands to neo4j
+* `Neo4j::Http::NodeClient` - provides a higher level API for upserting and deleting Nodes
+* `Neo4j::Http::RelationshipClient` - provides a higher level API for upserting and deleting Relationships
+
+The Node and Relationship clients use the `CypherClient` under the hood.  Each of these provides simple access via a `default` class method, which uses the default `Neo4j::Http.config` for creating the connections. For example
+
+`Neo4j::Http::NodeClient.default`
+
+is equivalent to:
+
+```
+config = Neo4j::Http.config
+cypher_client = Neo4j::Http::CypherClient.new(config)
+node_client = Neo4j::Http::NodeClient.new(cypher_client)
+```
+
+to connect to a different Neo4j database, you can create a custom configuration like:
+```
+config = Neo4j::Http::Configuration.new({ database_name: 'test' })
+cypher_client = Neo4j::Http::CypherClient.new(config)
+node_client = Neo4j::Http::NodeClient.new(cypher_client)
+```
+
 ## Versioning
 
 This project follows [semantic versioning](https://semver.org).
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install dependencies.
+
+To run specs, you'll need a running neo4j instance available at `localhost:7474`.  If you have Docker installed, this is easily done by using the provided [docker-file](https://github.com/doximity/neo4j-http/blob/master/docker-compose.yml) - simply run `docker-compose up` within the project directory, and once running, you can then, run `rake spec` to run the tests in another terminal.
+
+You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`.
 
@@ -33,7 +121,7 @@ To release a new version, update the version number in `version.rb`, issue a pul
 ## Contributing
 
 1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
+2. Create your feature branch (`git switch -c my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
