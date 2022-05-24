@@ -27,18 +27,25 @@ Or install it yourself as:
 
 The client is configured by default via a set of environment variables from [Neo4j::Http::Configuration](https://github.com/doximity/neo4j-http/blob/master/lib/neo4j/http/configuration.rb):
 
-* `NEO4J_URL`  - The base URL to connect to Neo4j at
-* `NEO4J_USER` - The user name to use when authenticating to neo4j
-* `NEO4J_PASSWORD` - The password of the user to be used for authentication
-* `NEO4J_DATABASE` - The database name to be used when connecting.  By default this will be nil and the path used for connecting to Neo4j wil be `/db/data/transaction/commit` to make it compliant with v3.5 of neo4j
-* `NEO4J_HTTP_USER_AGENT` - The user agent name provided in the request - defaults to `Ruby Neo4j Http Client`
-* `NEO4J_REQUEST_TIMEOUT_IN_SECONDS` - The number of seconds for the http request to time out if provided, defaults to nil
+* `NEO4J_URL`  - The base URL to connect to Neo4j at - defaults to `"http://localhost:7474"`
+* `NEO4J_USER` - The user name to use when authenticating to neo4j - defaults to `""`
+* `NEO4J_PASSWORD` - The password of the user to be used for authentication - defaults to `""`
+* `NEO4J_DATABASE` - The database name to be used when connecting.  By default this will be `nil`.
+* `NEO4J_HTTP_USER_AGENT` - The user agent name provided in the request - defaults to `"Ruby Neo4j Http Client"`
+* `NEO4J_REQUEST_TIMEOUT_IN_SECONDS` - The number of seconds for the http request to time out if provided - defaults to `nil`
 
-These configuration values can also be set during initalization like:
+The URI path used for connecting to Neo4j wil be `/db/data/transaction/commit` to make it compliant with v3.5 of Neo4j
+
+These configuration values can also be set during initalization, and take precedence over the environment variables:
 
 ```ruby
 Neo4j::Http.configure do |config|
-  config.request_timeout_in_seconds = 42
+  config.uri = "http://localhost:7474"
+  config.user = ""
+  config.password = ""
+  config.database_name = nil
+  config.user_agent = "Ruby Neo4j Http Client"
+  config.request_timeout_in_seconds = nil
 end
 ```
 
