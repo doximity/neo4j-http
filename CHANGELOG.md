@@ -1,6 +1,9 @@
 Changelog
 =========
 
+## v1.0.1 05/24/2022
+* Expand documentation configuration settings
+
 ## v1.0.0 04/28/2022
 * Initial gem extraction from Doximity
 
