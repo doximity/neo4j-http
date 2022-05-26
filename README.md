@@ -34,8 +34,6 @@ The client is configured by default via a set of environment variables from [Neo
 * `NEO4J_HTTP_USER_AGENT` - The user agent name provided in the request - defaults to `"Ruby Neo4j Http Client"`
 * `NEO4J_REQUEST_TIMEOUT_IN_SECONDS` - The number of seconds for the http request to time out if provided - defaults to `nil`
 
-The URI path used for connecting to Neo4j wil be `/db/data/transaction/commit` to make it compliant with v3.5 of Neo4j
-
 These configuration values can also be set during initalization, and take precedence over the environment variables:
 
 ```ruby
@@ -48,6 +46,21 @@ Neo4j::Http.configure do |config|
   config.request_timeout_in_seconds = nil
 end
 ```
+
+### Multiple databases
+
+The HTTP API endpoints [follow the pattern](https://neo4j.com/docs/upgrade-migration-guide/current/migration/surface-changes/http-api/) `/db/<NEO4J_DATABASE>/tx`
+
+To route to a different database, set a value for `NEO4J_DATABASE`. If no value is supplied, or this ENV is unset, the URI defaults to `/db/data/transaction/commit`
+
+This can be used for testing by setting up a test environment only variable using a gem like [dotenv-rails](https://github.com/bkeepers/dotenv):
+
+```
+# .env.testing
+NEO4J_DATABASE=test
+```
+
+All testing operations are now routed to the URI `/db/test/tx/commit`.
 
 ## Usage
 

@@ -19,6 +19,8 @@ module Neo4j
         @request_timeout_in_seconds = options.fetch("NEO4J_REQUEST_TIMEOUT_IN_SECONDS", nil)
       end
 
+      # https://neo4j.com/developer/manage-multiple-databases/
+      # https://neo4j.com/docs/upgrade-migration-guide/current/migration/surface-changes/http-api/
       def transaction_path
         # v3.5 - /db/data/transaction/commit
         # v4.x - /db/#{database_name}/tx/commit
