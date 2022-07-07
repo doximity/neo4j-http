@@ -80,12 +80,25 @@ module Neo4j
         selector
       end
 
-      def delete_relationship(relationship:, from:, to:)
+      def delete_relationship(relationship:, from:, to:, pk_attr: nil)
         from_selector = build_match_selector(:from, from)
         to_selector = build_match_selector(:to, to)
         relationship_selector = build_match_selector(:relationship, relationship)
+
+        pk_attr_val = relationship.attributes["#{pk_attr}"] if pk_attr.present?
+        merge_relationship = ""
+        merge_relationsihp = if pk_attr_val.present?
+                              <<-CYPHER
+                                MERGE (from) - [#{relationship_selector}{#{pk_attr}: "#{pk_attr_val}"}] - (to)
+                              CYPHER
+                             else
+                              <<-CYPHER
+                                MERGE (from) - [#{relationship_selector}] - (to)
+                              CYPHER
+                             end
+
         cypher = <<-CYPHER
-          MATCH (#{from_selector}) - [#{relationship_selector}] - (#{to_selector})
+          #{merge_relationship}
           WITH from, to, relationship
           DELETE relationship
           RETURN from, to
