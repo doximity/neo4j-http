@@ -11,7 +11,7 @@ module Neo4j
         @cypher_client = cypher_client
       end
 
-      def upsert_relationship(relationship:, from:, to:, create_nodes: false)
+      def upsert_relationship(relationship:, from:, to:, create_nodes: false, pk_attr: nil)
         match_or_merge = create_nodes ? "MERGE" : "MATCH"
         from_selector = build_match_selector(:from, from)
         to_selector = build_match_selector(:to, to)
@@ -25,10 +25,22 @@ module Neo4j
           CYPHER
         end
 
+        pk_attr_val = relationship.attributes["#{pk_attr}"] if pk_attr.present?
+        merge_relationship = ""
+        merge_relationsihp = if pk_attr_val.present?
+                              <<-CYPHER
+                                MERGE (from) - [#{relationship_selector}{#{pk_attr}: "#{pk_attr_val}"}] - (to)
+                              CYPHER
+                             else
+                              <<-CYPHER
+                                MERGE (from) - [#{relationship_selector}] - (to)
+                              CYPHER
+                             end
+
         cypher = +<<-CYPHER
           #{match_or_merge} (#{from_selector})
           #{match_or_merge} (#{to_selector})
-          MERGE (from) - [#{relationship_selector}] - (to)
+          #{merge_relationship}
           #{on_match}
           RETURN from, to, relationship
         CYPHER
