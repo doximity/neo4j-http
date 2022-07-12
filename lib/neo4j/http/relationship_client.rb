@@ -74,7 +74,7 @@ module Neo4j
         relationship_selector = build_match_selector(:relationship, relationship)
 
         cypher = <<-CYPHER
-          MERGE (from) - [#{relationship_selector}] - (to)
+          MATCH (#{from_selector}) - [#{relationship_selector}] - (#{to_selector})
           WITH from, to, relationship
           DELETE relationship
           RETURN from, to
