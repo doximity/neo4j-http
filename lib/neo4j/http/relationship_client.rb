@@ -11,7 +11,7 @@ module Neo4j
         @cypher_client = cypher_client
       end
 
-      def upsert_relationship(relationship:, from:, to:, create_nodes: false, pk_attr: nil)
+      def upsert_relationship(relationship:, from:, to:, create_nodes: false)
         match_or_merge = create_nodes ? "MERGE" : "MATCH"
         from_selector = build_match_selector(:from, from)
         to_selector = build_match_selector(:to, to)
@@ -25,22 +25,10 @@ module Neo4j
           CYPHER
         end
 
-        pk_attr_val = relationship.attributes["#{pk_attr}"] if pk_attr.present?
-        merge_relationship = ""
-        merge_relationsihp = if pk_attr_val.present?
-                              <<-CYPHER
-                                MERGE (from) - [#{relationship_selector}{#{pk_attr}: "#{pk_attr_val}"}] - (to)
-                              CYPHER
-                             else
-                              <<-CYPHER
-                                MERGE (from) - [#{relationship_selector}] - (to)
-                              CYPHER
-                             end
-
         cypher = +<<-CYPHER
           #{match_or_merge} (#{from_selector})
           #{match_or_merge} (#{to_selector})
-          #{merge_relationship}
+          MERGE (from) - [#{relationship_selector}] - (to)
           #{on_match}
           RETURN from, to, relationship
         CYPHER
@@ -80,25 +68,13 @@ module Neo4j
         selector
       end
 
-      def delete_relationship(relationship:, from:, to:, pk_attr: nil)
+      def delete_relationship(relationship:, from:, to:)
         from_selector = build_match_selector(:from, from)
         to_selector = build_match_selector(:to, to)
         relationship_selector = build_match_selector(:relationship, relationship)
 
-        pk_attr_val = relationship.attributes["#{pk_attr}"] if pk_attr.present?
-        merge_relationship = ""
-        merge_relationsihp = if pk_attr_val.present?
-                              <<-CYPHER
-                                MERGE (from) - [#{relationship_selector}{#{pk_attr}: "#{pk_attr_val}"}] - (to)
-                              CYPHER
-                             else
-                              <<-CYPHER
-                                MERGE (from) - [#{relationship_selector}] - (to)
-                              CYPHER
-                             end
-
         cypher = <<-CYPHER
-          #{merge_relationship}
+          MERGE (from) - [#{relationship_selector}] - (to)
           WITH from, to, relationship
           DELETE relationship
           RETURN from, to
