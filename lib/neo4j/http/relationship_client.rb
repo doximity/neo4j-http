@@ -43,7 +43,7 @@ module Neo4j
         results&.first
       end
 
-      def find_relationship(from:, relationship:, to:)
+      def find_relationships(from:, relationship:, to:)
         from_match_clause = build_match_selector(:from, from)
         to_match_clause = build_match_selector(:to, to)
         relationship_clause = build_match_selector(:relationship, relationship)
@@ -52,15 +52,20 @@ module Neo4j
           RETURN from, to, relationship
         CYPHER
 
-        results = @cypher_client.execute_cypher(
+        @cypher_client.execute_cypher(
           cypher,
           from: from,
           to: to,
           relationship: relationship,
           access_mode: "READ"
         )
+      end
+
+      def find_relationship(from:, relationship:, to:)
+        results = find_relationships(from: from, to: to, relationship: relationship)
         results&.first
       end
+
 
       def build_match_selector(name, data)
         selector = +"#{name}:#{data.label}"
