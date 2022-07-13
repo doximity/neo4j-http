@@ -66,7 +66,6 @@ module Neo4j
         results&.first
       end
 
-
       def build_match_selector(name, data)
         selector = +"#{name}:#{data.label}"
         selector << " {#{data.key_name}: $#{name}.#{data.key_name}}" if data.key_name.present?
