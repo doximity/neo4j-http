@@ -77,6 +77,10 @@ RSpec.describe Neo4j::Http::RelationshipClient do
       expect(result["relationship"].keys).to eq(%w[uuid age _neo4j_meta_data])
       expect(result["relationship"]["uuid"]).to eq("RelationshipUuid")
       expect(result["relationship"]["age"]).to eq(33)
+
+      rel = Neo4j::Http::Relationship.new(label: "KNOWS")
+      relationships = client.find_relationships(relationship: rel, from: from, to: to)
+      expect(relationships.count).to eq(1)
     end
 
     it "allows relationships with same labels between same nodes if primary key is set and different" do
