@@ -9,6 +9,7 @@ module Neo4j
       attr_accessor :uri
       attr_accessor :user
       attr_accessor :user_agent
+      attr_accessor :access_mode
 
       def initialize(options = ENV)
         @uri = options.fetch("NEO4J_URL", "http://localhost:7474")
@@ -17,6 +18,7 @@ module Neo4j
         @database_name = options.fetch("NEO4J_DATABASE", nil)
         @user_agent = options.fetch("NEO4J_HTTP_USER_AGENT", "Ruby Neo4j Http Client")
         @request_timeout_in_seconds = options.fetch("NEO4J_REQUEST_TIMEOUT_IN_SECONDS", nil)
+        @access_mode = options.fetch("NEO4J_ACCESS_MODE", "WRITE")
       end
 
       # https://neo4j.com/developer/manage-multiple-databases/

@@ -4,10 +4,10 @@ module Neo4j
   module Http
     class ObjectWrapper
       attr_reader :attributes,
-        :key_name,
-        :key_value,
-        :label,
-        :original_attributes
+                  :key_name,
+                  :key_value,
+                  :label,
+                  :original_attributes
 
       def initialize(label:, graph_node_primary_key_name: nil, **attributes)
         @original_attributes = (attributes || {}).with_indifferent_access

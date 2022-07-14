@@ -10,11 +10,11 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
       config = Neo4j::Http::Configuration.new
       config.request_timeout_in_seconds = 42
       client = described_class.new(config)
-      expect(client.connection.options.timeout).to eq(42)
+      expect(client.connection("READ").options.timeout).to eq(42)
     end
 
     it "defaults to having no request timeout" do
-      expect(client.connection.options.timeout).to be_nil
+      expect(client.connection("READ").options.timeout).to be_nil
     end
   end
 
@@ -48,6 +48,22 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
 
       results = client.execute_cypher("MATCH (node:Test {uuid: 'Uuid1'}) return node")
       expect(results.length).to eq(0)
+    end
+
+    it "raises a ReadOnlyError when access control is set to read" do
+      expect { client.execute_cypher("CREATE (n) RETURN n", access_mode: "READ") }
+        .to raise_error(Neo4j::Http::Errors::ReadOnlyError)
+    end
+
+    it "reads access_mode from configuration" do
+      allow_any_instance_of(Neo4j::Http::Configuration).to receive(:access_mode).and_return("READ")
+      expect { client.execute_cypher("CREATE (n) RETURN n") }
+        .to raise_error(Neo4j::Http::Errors::ReadOnlyError)
+    end
+
+    it "overrides access_mode from configuration with param" do
+      allow_any_instance_of(Neo4j::Http::Configuration).to receive(:access_mode).and_return("READ")
+      client.execute_cypher("CREATE (n) RETURN n", access_mode: "WRITE")
     end
   end
 end

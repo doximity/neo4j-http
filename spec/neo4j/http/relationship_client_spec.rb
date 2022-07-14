@@ -100,7 +100,12 @@ RSpec.describe Neo4j::Http::RelationshipClient do
   end
 
   def verify_relationship(from, relationship, to)
-    results = Neo4j::Http::CypherClient.default.execute_cypher("MATCH (from:Bot {uuid: $from})-[relationship:#{relationship}]-(to:Bot {uuid: $to}) RETURN from, to, relationship", from: from.key_value, to: to.key_value)
+    results = Neo4j::Http::CypherClient.default.execute_cypher(
+      "MATCH (from:Bot {uuid: $from})-[relationship:#{relationship}]-(to:Bot {uuid: $to})
+      RETURN from, to, relationship",
+      from: from.key_value,
+      to: to.key_value
+    )
     result = results.first
 
     expect(result.keys).to eq(%w[from to relationship])

@@ -4,7 +4,10 @@ module Neo4j
   module Http
     class Results
       # Example result set:
-      # [{"columns"=>["n"], "data"=>[{"row"=>[{"name"=>"Foo", "uuid"=>"8c7dcfda-d848-4937-a91a-2e6debad2dd6"}], "meta"=>[{"id"=>242, "type"=>"node", "deleted"=>false}]}]}]
+      # [{"columns"=>["n"],
+      # "data"=>
+      # [{"row"=>[{"name"=>"Foo", "uuid"=>"8c7dcfda-d848-4937-a91a-2e6debad2dd6"}],
+      #   "meta"=>[{"id"=>242, "type"=>"node", "deleted"=>false}]}]}]
       #
       def self.parse(results)
         columns = results["columns"]

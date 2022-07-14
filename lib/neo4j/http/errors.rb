@@ -4,6 +4,7 @@ module Neo4j
       Neo4jError = Class.new(StandardError)
       InvalidConnectionUrl = Class.new(Neo4jError)
       Neo4jCodedError = Class.new(Neo4jError)
+      ReadOnlyError = Class.new(Neo4jError)
 
       # These are specific Errors Neo4j can raise
       module Neo

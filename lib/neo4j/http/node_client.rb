@@ -41,15 +41,16 @@ module Neo4j
       def find_node_by(label:, **attributes)
         selectors = attributes.map { |key, value| "#{key}: $attributes.#{key}" }.join(", ")
         cypher = "MATCH (node:#{label} { #{selectors} }) RETURN node LIMIT 1"
-        results = @cypher_client.execute_cypher(cypher, attributes: attributes)
+        results = @cypher_client.execute_cypher(cypher, attributes: attributes.merge(access_mode: "READ"))
         return if results.empty?
+
         results.first&.fetch("node")
       end
 
       def find_nodes_by(label:, attributes:, limit: 100)
         selectors = build_selectors(attributes)
         cypher = "MATCH (node:#{label}) where #{selectors} RETURN node LIMIT #{limit}"
-        results = @cypher_client.execute_cypher(cypher, attributes: attributes)
+        results = @cypher_client.execute_cypher(cypher, attributes: attributes.merge(access_mode: "READ"))
         results.map { |result| result["node"] }
       end
 
