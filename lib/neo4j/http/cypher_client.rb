@@ -12,8 +12,9 @@ module Neo4j
         @default ||= new(Neo4j::Http.config)
       end
 
-      def initialize(configuration)
+      def initialize(configuration, injected_connection = nil)
         @configuration = configuration
+        @injected_connection = injected_connection
       end
 
       # Executes a cypher query, passing in the cypher statement, with parameters as an optional hash
@@ -30,7 +31,8 @@ module Neo4j
           ]
         }
 
-        response = connection(access_mode).post(transaction_path, request_body)
+        @connection = @injected_connection || connection(access_mode)
+        response = @connection.post(transaction_path, request_body)
         results = check_errors!(cypher, response, parameters)
 
         Neo4j::Http::Results.parse(results&.first || {})

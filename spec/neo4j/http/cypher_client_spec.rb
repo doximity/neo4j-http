@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "faraday"
 
 RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
   subject(:client) { described_class.default }
@@ -50,20 +51,37 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
       expect(results.length).to eq(0)
     end
 
-    it "raises a ReadOnlyError when access control is set to read" do
-      expect { client.execute_cypher("CREATE (n) RETURN n", access_mode: "READ") }
-        .to raise_error(Neo4j::Http::Errors::ReadOnlyError)
-    end
+    describe "with injected connection" do
+      let(:stubs) { Faraday::Adapter::Test::Stubs.new }
+      let(:injected_connection) do
+        Faraday.new do |f|
+          f.adapter(:test, stubs)
+          f.response :json
+        end
+      end
+      let(:client) { described_class.new(Neo4j::Http.config, injected_connection) }
 
-    it "reads access_mode from configuration" do
-      allow_any_instance_of(Neo4j::Http::Configuration).to receive(:access_mode).and_return("READ")
-      expect { client.execute_cypher("CREATE (n) RETURN n") }
-        .to raise_error(Neo4j::Http::Errors::ReadOnlyError)
-    end
+      it "raises a ReadOnlyError when access control is set to read" do
+        stubs.post('/db/data/transaction/commit') do
+          [
+            200,
+            { 'Content-Type': 'application/json' },
+            '{
+              "results": [],
+              "errors": [
+                {
+                  "code": "Neo.ClientError.Request.Invalid",
+                  "message": "Routing WRITE queries is not supported in clusters where Server-Side Routing is disabled."
+                }
+              ]
+            }'
+          ]
+        end
 
-    it "overrides access_mode from configuration with param" do
-      allow_any_instance_of(Neo4j::Http::Configuration).to receive(:access_mode).and_return("READ")
-      client.execute_cypher("CREATE (n) RETURN n", access_mode: "WRITE")
+        expect { client.execute_cypher("CREATE (n) RETURN n", access_mode: "READ") }
+          .to raise_error(Neo4j::Http::Errors::ReadOnlyError)
+        stubs.verify_stubbed_calls
+      end
     end
   end
 end
