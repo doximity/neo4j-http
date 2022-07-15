@@ -62,10 +62,10 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
       let(:client) { described_class.new(Neo4j::Http.config, injected_connection) }
 
       it "raises a ReadOnlyError when access control is set to read" do
-        stubs.post('/db/data/transaction/commit') do
+        stubs.post("/db/data/transaction/commit") do
           [
             200,
-            { 'Content-Type': 'application/json' },
+            {"Content-Type": "application/json"},
             '{
               "results": [],
               "errors": [

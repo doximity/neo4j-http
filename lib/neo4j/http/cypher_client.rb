@@ -26,8 +26,10 @@ module Neo4j
 
         request_body = {
           statements: [
-            { statement: cypher,
-              parameters: parameters.as_json }
+            {
+              statement: cypher,
+              parameters: parameters.as_json
+            }
           ]
         }
 
@@ -75,9 +77,7 @@ module Neo4j
 
       def build_connection(access_mode)
         # https://neo4j.com/docs/http-api/current/actions/transaction-configuration/
-        headers = build_http_headers.merge({
-                                             "access-mode" => access_mode
-                                           })
+        headers = build_http_headers.merge({"access-mode" => access_mode})
         Faraday.new(url: @configuration.uri, headers: headers, request: build_request_options) do |f|
           f.request :json # encode req bodies as JSON
           f.request :retry # retry transient failures
@@ -104,7 +104,7 @@ module Neo4j
       def authentication_headers
         return {} if auth_token.blank?
 
-        { "Authentication" => "Basic #{auth_token}" }
+        {"Authentication" => "Basic #{auth_token}"}
       end
     end
   end
