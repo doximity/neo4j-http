@@ -33,6 +33,7 @@ The client is configured by default via a set of environment variables from [Neo
 * `NEO4J_DATABASE` - The database name to be used when connecting.  By default this will be `nil`.
 * `NEO4J_HTTP_USER_AGENT` - The user agent name provided in the request - defaults to `"Ruby Neo4j Http Client"`
 * `NEO4J_REQUEST_TIMEOUT_IN_SECONDS` - The number of seconds for the http request to time out if provided - defaults to `nil`
+* `ACCESS_MODE` - "WRITE", or "READ" for read only instances of Neo4j clients - defaults to `"WRITE"`
 
 These configuration values can also be set during initalization, and take precedence over the environment variables:
 
@@ -44,6 +45,7 @@ Neo4j::Http.configure do |config|
   config.database_name = nil
   config.user_agent = "Ruby Neo4j Http Client"
   config.request_timeout_in_seconds = nil
+  config.access_mode = "WRITE"
 end
 ```
 

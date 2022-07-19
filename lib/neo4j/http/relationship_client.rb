@@ -52,7 +52,13 @@ module Neo4j
           RETURN from, to, relationship
         CYPHER
 
-        results = @cypher_client.execute_cypher(cypher, from: from, to: to, relationship: relationship)
+        results = @cypher_client.execute_cypher(
+          cypher,
+          from: from,
+          to: to,
+          relationship: relationship,
+          access_mode: "READ"
+        )
         results&.first
       end
 

@@ -12,26 +12,36 @@ module Neo4j
         @default ||= new(Neo4j::Http.config)
       end
 
-      def initialize(configuration)
+      def initialize(configuration, injected_connection = nil)
         @configuration = configuration
+        @injected_connection = injected_connection
       end
 
+      # Executes a cypher query, passing in the cypher statement, with parameters as an optional hash
+      # e.g. Neo4j::Http::Cypherclient.execute_cypher("MATCH (n { foo: $foo }) LIMIT 1 RETURN n", { foo: "bar" })
       def execute_cypher(cypher, parameters = {})
+        # By default the access mode is set to "WRITE", but can be set to "READ"
+        # for improved routing performance on read only queries
+        access_mode = parameters.delete(:access_mode) || @configuration.access_mode
+
         request_body = {
           statements: [
-            {statement: cypher,
-             parameters: parameters.as_json}
+            {
+              statement: cypher,
+              parameters: parameters.as_json
+            }
           ]
         }
 
-        response = connection.post(transaction_path, request_body)
+        @connection = @injected_connection || connection(access_mode)
+        response = @connection.post(transaction_path, request_body)
         results = check_errors!(cypher, response, parameters)
 
         Neo4j::Http::Results.parse(results&.first || {})
       end
 
-      def connection
-        build_connection
+      def connection(access_mode)
+        build_connection(access_mode)
       end
 
       protected
@@ -39,6 +49,10 @@ module Neo4j
       delegate :auth_token, :transaction_path, to: :@configuration
       def check_errors!(cypher, response, parameters)
         raise Neo4j::Http::Errors::InvalidConnectionUrl, response.status if response.status == 404
+        if response.body["errors"].any? { |error| error["message"][/Routing WRITE queries is not supported/] }
+          raise Neo4j::Http::Errors::ReadOnlyError
+        end
+
         body = response.body || {}
         errors = body.fetch("errors", [])
         return body.fetch("results", {}) unless errors.present?
@@ -61,8 +75,10 @@ module Neo4j
         Neo4j::Http::Errors::Neo4jCodedError
       end
 
-      def build_connection
-        Faraday.new(url: @configuration.uri, headers: build_http_headers, request: build_request_options) do |f|
+      def build_connection(access_mode)
+        # https://neo4j.com/docs/http-api/current/actions/transaction-configuration/
+        headers = build_http_headers.merge({"access-mode" => access_mode})
+        Faraday.new(url: @configuration.uri, headers: headers, request: build_request_options) do |f|
           f.request :json # encode req bodies as JSON
           f.request :retry # retry transient failures
           f.response :json # decode response bodies as JSON

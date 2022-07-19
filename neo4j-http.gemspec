@@ -26,6 +26,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "faraday", "< 2"
   spec.add_runtime_dependency "faraday_middleware"
   spec.add_runtime_dependency "faraday-retry"
-
-  spec.add_development_dependency "pry"
+  spec.add_runtime_dependency "pry"
 end

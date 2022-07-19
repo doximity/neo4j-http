@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "faraday"
 
 RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
   subject(:client) { described_class.default }
@@ -10,11 +11,11 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
       config = Neo4j::Http::Configuration.new
       config.request_timeout_in_seconds = 42
       client = described_class.new(config)
-      expect(client.connection.options.timeout).to eq(42)
+      expect(client.connection("READ").options.timeout).to eq(42)
     end
 
     it "defaults to having no request timeout" do
-      expect(client.connection.options.timeout).to be_nil
+      expect(client.connection("READ").options.timeout).to be_nil
     end
   end
 
@@ -48,6 +49,39 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
 
       results = client.execute_cypher("MATCH (node:Test {uuid: 'Uuid1'}) return node")
       expect(results.length).to eq(0)
+    end
+
+    describe "with injected connection" do
+      let(:stubs) { Faraday::Adapter::Test::Stubs.new }
+      let(:injected_connection) do
+        Faraday.new do |f|
+          f.adapter(:test, stubs)
+          f.response :json
+        end
+      end
+      let(:client) { described_class.new(Neo4j::Http.config, injected_connection) }
+
+      it "raises a ReadOnlyError when access control is set to read" do
+        stubs.post("/db/data/transaction/commit") do
+          [
+            200,
+            {"Content-Type": "application/json"},
+            '{
+              "results": [],
+              "errors": [
+                {
+                  "code": "Neo.ClientError.Request.Invalid",
+                  "message": "Routing WRITE queries is not supported in clusters where Server-Side Routing is disabled."
+                }
+              ]
+            }'
+          ]
+        end
+
+        expect { client.execute_cypher("CREATE (n) RETURN n", access_mode: "READ") }
+          .to raise_error(Neo4j::Http::Errors::ReadOnlyError)
+        stubs.verify_stubbed_calls
+      end
     end
   end
 end

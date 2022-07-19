@@ -1,6 +1,9 @@
 Changelog
 =========
 
+## v1.0.2 07/19/2022
+* Adds an access_mode setting to cypher queries
+
 ## v1.0.1 05/24/2022
 * Expand documentation configuration settings
 
