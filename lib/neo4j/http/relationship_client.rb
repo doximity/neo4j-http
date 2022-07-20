@@ -87,6 +87,23 @@ module Neo4j
         results = @cypher_client.execute_cypher(cypher, from: from, to: to)
         results&.first
       end
+
+      def delete_relationship_on_primary_key(relationship:)
+        # protection against mass deletion of relationships
+        return if relationship.key_name.nil?
+
+        relationship_selector = build_match_selector(:relationship, relationship)
+
+        cypher = <<-CYPHER
+          MATCH () - [#{relationship_selector}] - ()
+          WITH relationship
+          DELETE relationship
+          RETURN relationship
+        CYPHER
+
+        results = @cypher_client.execute_cypher(cypher, relationship: relationship)
+        results&.first
+      end
     end
   end
 end
