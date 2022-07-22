@@ -139,6 +139,25 @@ RSpec.describe Neo4j::Http::RelationshipClient do
     end
   end
 
+  describe "delete_relationship_on_primary_key" do
+    it "removes the correct relationship" do
+      relationship1 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "friend")
+      relationship2 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "colleague")
+      client.upsert_relationship(relationship: relationship1, from: from, to: to, create_nodes: true)
+      client.upsert_relationship(relationship: relationship2, from: from, to: to, create_nodes: true)
+
+      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
+
+      result = client.delete_relationship_on_primary_key(relationship: relationship2)
+      expect(result.keys).to eq(["relationship"])
+
+      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(1)
+    end
+
+    it "doesn't delete if primary key is  missing" do
+    end
+  end
+
   def verify_relationship(from, relationship, to)
     results = Neo4j::Http::CypherClient.default.execute_cypher(
       "MATCH (from:Bot {uuid: $from})-[relationship:#{relationship}]-(to:Bot {uuid: $to})
