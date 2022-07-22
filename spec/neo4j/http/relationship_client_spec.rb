@@ -151,10 +151,23 @@ RSpec.describe Neo4j::Http::RelationshipClient do
       result = client.delete_relationship_on_primary_key(relationship: relationship2)
       expect(result.keys).to eq(["relationship"])
 
-      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(1)
+      rels = client.find_relationships(relationship: relationship, from: from, to: to)
+      expect(rels.count).to eq(1)
+      expect(rels.first["relationship"]["how"]).to eq("friend")
     end
 
     it "doesn't delete if primary key is  missing" do
+      relationship1 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "friend")
+      relationship2 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "colleague")
+      client.upsert_relationship(relationship: relationship1, from: from, to: to, create_nodes: true)
+      client.upsert_relationship(relationship: relationship2, from: from, to: to, create_nodes: true)
+
+      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
+
+      result = client.delete_relationship_on_primary_key(relationship: relationship)
+      expect(result).to be_nil
+
+      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
     end
   end
 
