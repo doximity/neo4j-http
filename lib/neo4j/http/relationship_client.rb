@@ -43,7 +43,7 @@ module Neo4j
         results&.first
       end
 
-      def find_relationship(from:, relationship:, to:)
+      def find_relationships(from:, relationship:, to:)
         from_match_clause = build_match_selector(:from, from)
         to_match_clause = build_match_selector(:to, to)
         relationship_clause = build_match_selector(:relationship, relationship)
@@ -52,13 +52,17 @@ module Neo4j
           RETURN from, to, relationship
         CYPHER
 
-        results = @cypher_client.execute_cypher(
+        @cypher_client.execute_cypher(
           cypher,
           from: from,
           to: to,
           relationship: relationship,
           access_mode: "READ"
         )
+      end
+
+      def find_relationship(from:, relationship:, to:)
+        results = find_relationships(from: from, to: to, relationship: relationship)
         results&.first
       end
 
@@ -72,6 +76,7 @@ module Neo4j
         from_selector = build_match_selector(:from, from)
         to_selector = build_match_selector(:to, to)
         relationship_selector = build_match_selector(:relationship, relationship)
+
         cypher = <<-CYPHER
           MATCH (#{from_selector}) - [#{relationship_selector}] - (#{to_selector})
           WITH from, to, relationship
@@ -80,6 +85,23 @@ module Neo4j
         CYPHER
 
         results = @cypher_client.execute_cypher(cypher, from: from, to: to)
+        results&.first
+      end
+
+      def delete_relationship_on_primary_key(relationship:)
+        # protection against mass deletion of relationships
+        return if relationship.key_name.nil?
+
+        relationship_selector = build_match_selector(:relationship, relationship)
+
+        cypher = <<-CYPHER
+          MATCH () - [#{relationship_selector}] - ()
+          WITH relationship
+          DELETE relationship
+          RETURN relationship
+        CYPHER
+
+        results = @cypher_client.execute_cypher(cypher, relationship: relationship)
         results&.first
       end
     end

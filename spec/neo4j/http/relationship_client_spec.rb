@@ -65,6 +65,46 @@ RSpec.describe Neo4j::Http::RelationshipClient do
     end
 
     it "updates attributes on an existing relationship" do
+      create_node(from)
+      create_node(to)
+
+      relationship = Neo4j::Http::Relationship.new(label: "KNOWS", uuid: "RelationshipUuid", age: 21)
+      create_relationship(from, relationship, to)
+
+      updated_relationship = Neo4j::Http::Relationship.new(label: "KNOWS", uuid: "RelationshipUuid", age: 33)
+      result = create_relationship(from, updated_relationship, to)
+
+      expect(result["relationship"].keys).to eq(%w[uuid age _neo4j_meta_data])
+      expect(result["relationship"]["uuid"]).to eq("RelationshipUuid")
+      expect(result["relationship"]["age"]).to eq(33)
+
+      rel = Neo4j::Http::Relationship.new(label: "KNOWS")
+      relationships = client.find_relationships(relationship: rel, from: from, to: to)
+      expect(relationships.count).to eq(1)
+    end
+
+    it "allows relationships with same labels between same nodes if primary key is set and different" do
+      create_node(from)
+      create_node(to)
+
+      relationship_friend = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "uuid", uuid: "FriendUuid", how: "friend")
+      edge_a = create_relationship(from, relationship_friend, to)
+
+      relationship_colleague = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "uuid", uuid: "ColleagueUuid", how: "colleague")
+      edge_b = create_relationship(from, relationship_colleague, to)
+
+      expect(edge_a["relationship"]["uuid"]).to eq("FriendUuid")
+      expect(edge_a["relationship"]["how"]).to eq("friend")
+
+      expect(edge_b["relationship"]["uuid"]).to eq("ColleagueUuid")
+      expect(edge_b["relationship"]["how"]).to eq("colleague")
+
+      result = client.find_relationships(relationship: relationship, from: from, to: to)
+
+      expect(result.count).to eq(2)
+      expect(result[0]["from"]["uuid"]).to eq(result[1]["from"]["uuid"])
+      expect(result[0]["to"]["uuid"]).to eq(result[1]["to"]["uuid"])
+      expect(result[0]["relationship"]["how"]).not_to eq(result[1]["relationship"]["how"])
     end
   end
 
@@ -99,6 +139,38 @@ RSpec.describe Neo4j::Http::RelationshipClient do
     end
   end
 
+  describe "delete_relationship_on_primary_key" do
+    it "removes the correct relationship" do
+      relationship1 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "friend")
+      relationship2 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "colleague")
+      client.upsert_relationship(relationship: relationship1, from: from, to: to, create_nodes: true)
+      client.upsert_relationship(relationship: relationship2, from: from, to: to, create_nodes: true)
+
+      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
+
+      result = client.delete_relationship_on_primary_key(relationship: relationship2)
+      expect(result.keys).to eq(["relationship"])
+
+      rels = client.find_relationships(relationship: relationship, from: from, to: to)
+      expect(rels.count).to eq(1)
+      expect(rels.first["relationship"]["how"]).to eq("friend")
+    end
+
+    it "doesn't delete if primary key is  missing" do
+      relationship1 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "friend")
+      relationship2 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "colleague")
+      client.upsert_relationship(relationship: relationship1, from: from, to: to, create_nodes: true)
+      client.upsert_relationship(relationship: relationship2, from: from, to: to, create_nodes: true)
+
+      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
+
+      result = client.delete_relationship_on_primary_key(relationship: relationship)
+      expect(result).to be_nil
+
+      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
+    end
+  end
+
   def verify_relationship(from, relationship, to)
     results = Neo4j::Http::CypherClient.default.execute_cypher(
       "MATCH (from:Bot {uuid: $from})-[relationship:#{relationship}]-(to:Bot {uuid: $to})
@@ -115,5 +187,9 @@ RSpec.describe Neo4j::Http::RelationshipClient do
 
   def create_node(node)
     Neo4j::Http::NodeClient.default.upsert_node(node)
+  end
+
+  def create_relationship(from, relationship, to)
+    Neo4j::Http::RelationshipClient.default.upsert_relationship(from: from, relationship: relationship, to: to)
   end
 end

@@ -9,11 +9,10 @@ module Neo4j
         :label,
         :original_attributes
 
-      def initialize(label:, graph_node_primary_key_name: nil, **attributes)
+      def initialize(label:, primary_key_name: nil, **attributes)
         @original_attributes = (attributes || {}).with_indifferent_access
         @attributes = original_attributes.dup.with_indifferent_access
-        @key_name = graph_node_primary_key_name
-        @key_value = @attributes.delete(key_name)
+        @key_name = primary_key_name
         @label = label
       end
 
