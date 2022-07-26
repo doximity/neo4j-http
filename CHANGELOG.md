@@ -1,6 +1,9 @@
 Changelog
 =========
 
+## v1.1.0 07/26/2022
+* Adds ability for relationships to function with a primary key attr
+
 ## v1.0.2 07/19/2022
 * Adds an access_mode setting to cypher queries
 
