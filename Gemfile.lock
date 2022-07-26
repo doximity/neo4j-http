@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    neo4j-http (1.0.4.then)
+    neo4j-http (1.1.0)
       activesupport (>= 5.2)
       faraday (< 2)
       faraday-retry

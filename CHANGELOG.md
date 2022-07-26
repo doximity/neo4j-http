@@ -1,7 +1,7 @@
 Changelog
 =========
 
-## v1.0.4.then 07/22/2022
+## v1.1.0 07/26/2022
 * Adds ability for relationships to function with a primary key attr
 
 ## v1.0.2 07/19/2022
