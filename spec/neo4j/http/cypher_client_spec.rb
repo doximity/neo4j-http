@@ -102,11 +102,11 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
           },
           {
             statement: statement3,
-            parameters: { name: "Baz" }
+            parameters: {name: "Baz"}
           },
           {
             statement: statement4,
-            parameters: { name: "Qux" }
+            parameters: {name: "Qux"}
           }
         ])
 
@@ -114,6 +114,35 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
         expect(results[1][0]["node"]["name"]).to eq("Bar")
         expect(results[2][0]["node"]["name"]).to eq("Baz")
         expect(results[3][0]["node"]["name"]).to eq("Qux")
+      end
+
+      it "handles error and rolls back" do
+        good_statement = "MERGE (node:Test {uuid: 'Uuid1', name: 'Foo'}) return node"
+        bad_statement = "MERGE (node:Test {uuid: 'Uuid2', name: 'Bar'}) BAD SYNTAX"
+        good_statement2 = "MERGE (node:Test {uuid: 'Uuid3', name: 'Baz'}) return node"
+
+        expect {
+          client.execute_batch_cypher([
+            {
+              statement: good_statement,
+              parameters: {}
+            },
+            {
+              statement: bad_statement,
+              parameters: {}
+            },
+            {
+              statement: good_statement2,
+              parameters: {}
+            }
+          ])
+        }.to raise_error Neo4j::Http::Errors::Neo::ClientError::Statement::SyntaxError
+
+        results = client.execute_cypher("MATCH (node:Test { uuid: 'Uuid1' }) return node")
+        expect(results).to be_empty
+
+        results = client.execute_cypher("MATCH (node:Test { uuid: 'Uuid3' }) return node")
+        expect(results).to be_empty
       end
     end
   end
