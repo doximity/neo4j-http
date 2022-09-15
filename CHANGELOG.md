@@ -1,6 +1,9 @@
 Changelog
 =========
 
+## v1.2.0 09/15/2022
+* Adds a new execute_batch_cypher method
+
 ## v1.1.0 07/26/2022
 * Adds ability for relationships to function with a primary key attr
 
