@@ -83,5 +83,38 @@ RSpec.describe Neo4j::Http::CypherClient, type: :uses_neo4j do
         stubs.verify_stubbed_calls
       end
     end
+
+    describe "execute_batch_cypher" do
+      it "executes all statments" do
+        statement1 = "MERGE (node:Test {uuid: 'Uuid1', name: 'Foo'}) return node"
+        statement2 = "MERGE (node:Test {uuid: 'Uuid2', name: 'Bar'}) return node"
+        statement3 = "MERGE (node:Test {uuid: 'Uuid3', name: $name}) return node"
+        statement4 = "MERGE (node:Test {uuid: 'Uuid4', name: $name}) return node"
+
+        results = client.execute_batch_cypher([
+          {
+            statement: statement1,
+            parameters: nil
+          },
+          {
+            statement: statement2,
+            parameters: {}
+          },
+          {
+            statement: statement3,
+            parameters: { name: "Baz" }
+          },
+          {
+            statement: statement4,
+            parameters: { name: "Qux" }
+          }
+        ])
+
+        expect(results[0][0]["node"]["name"]).to eq("Foo")
+        expect(results[1][0]["node"]["name"]).to eq("Bar")
+        expect(results[2][0]["node"]["name"]).to eq("Baz")
+        expect(results[3][0]["node"]["name"]).to eq("Qux")
+      end
+    end
   end
 end

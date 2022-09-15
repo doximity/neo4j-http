@@ -100,6 +100,20 @@ Neo4j::Http::Client.find_relationship(relationship: relationship, from: user1, t
 Neo4j::Http::Client.delete_relationship(relationship: relationship, from: user1, to: user2)
 ```
 
+### Executing multiple statements
+```ruby
+Neo4j::Http::Client.execute_batch_cypher([
+  {
+    "statement": "RETURN 1",
+    "parameters": {}
+  },
+  {
+    "statement": "RETURN 2",
+    "parameters": {}
+  }
+])
+```
+
 Each of the methods exposed on `Neo4j::Http::Client` above are provided by instances of each of the following adapters:
 * `Neo4j::Http::CypherClient` - provides an `execute_cypher` method which sends raw cypher commands to neo4j
 * `Neo4j::Http::NodeClient` - provides a higher level API for upserting and deleting Nodes
