@@ -11,7 +11,7 @@ module Neo4j
         @cypher_client = cypher_client
       end
 
-      def upsert_node(node, defer: false)
+      def upsert_node(node)
         raise "#{node.key_name} value cannot be blank - (node keys: #{node.to_h.keys})" if node.key_value.blank?
 
         cypher = <<-CYPHER
@@ -21,28 +21,18 @@ module Neo4j
           return node
         CYPHER
 
-        return {
-          statement: cypher,
-          parameters: { key_value: node.key_value, attributes: node.attributes }
-        } if defer
-
         results = @cypher_client.execute_cypher(cypher, key_value: node.key_value, attributes: node.attributes)
 
         results.first&.fetch("node")
       end
 
-      def delete_node(node, defer: false)
+      def delete_node(node)
         cypher = <<-CYPHER
           MATCH (node:#{node.label} {#{node.key_name}: $key_value})
           WITH node
           DETACH DELETE node
           RETURN node
         CYPHER
-
-        return {
-          statement: cypher,
-          parameters: { key_value: node.key_value }
-        } if defer
 
         results = @cypher_client.execute_cypher(cypher, key_value: node.key_value)
         results.first&.fetch("node")

@@ -40,31 +40,6 @@ module Neo4j
         Neo4j::Http::Results.parse(results&.first || {})
       end
 
-      # Each statement should be Hash with statement and parameters keys e.g.
-      #   {
-      #     statement: "MATCH (n:User { name: $name }) RETURN n",
-      #     parameters: { name: "Ben" }
-      #   }
-      # https://neo4j.com/docs/http-api/current/actions/execute-multiple-statements/
-      def execute_batch_cypher(statements = [])
-        request_body = {
-          statements: statements.map do |statement|
-            {
-              statement: statement[:statement],
-              parameters: statement[:parameters].as_json
-            }
-          end
-        }
-
-        @connection = @injected_connection || connection("WRITE")
-        response = @connection.post(transaction_path, request_body)
-        results = check_errors!(statements, response)
-
-        results.map do |result|
-          Neo4j::Http::Results.parse(result || {})
-        end
-      end
-
       def connection(access_mode)
         build_connection(access_mode)
       end

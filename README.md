@@ -100,20 +100,6 @@ Neo4j::Http::Client.find_relationship(relationship: relationship, from: user1, t
 Neo4j::Http::Client.delete_relationship(relationship: relationship, from: user1, to: user2)
 ```
 
-### Executing multiple statements
-```ruby
-Neo4j::Http::Client.execute_batch_cypher([
-  {
-    "statement": "RETURN 1",
-    "parameters": {}
-  },
-  {
-    "statement": "RETURN 2",
-    "parameters": {}
-  }
-])
-```
-
 Each of the methods exposed on `Neo4j::Http::Client` above are provided by instances of each of the following adapters:
 * `Neo4j::Http::CypherClient` - provides an `execute_cypher` method which sends raw cypher commands to neo4j
 * `Neo4j::Http::NodeClient` - provides a higher level API for upserting and deleting Nodes
@@ -137,6 +123,29 @@ config = Neo4j::Http::Configuration.new({ database_name: 'test' })
 cypher_client = Neo4j::Http::CypherClient.new(config)
 node_client = Neo4j::Http::NodeClient.new(cypher_client)
 ```
+
+## Batch operations
+
+The `Neo4j::Http::Client.in_batch` will yield a batch client. It can be used like:
+
+```ruby
+Neo4j::Http::Client.in_batch do |tx|
+  [
+    tx.upsert_node(node),
+    tx.upsert_node(node2),
+    tx.upsert_relationship(relationship: relationship, from: from, to: to)
+  ]
+end
+```
+
+All of the commands need to chain off of the variable exposed by the block in order to
+prepare the operations for the batch. These are not immediately invoked like their
+single operation counterparts. The syntax and arguments are identical.
+
+The array of statements will be passed into a batch client that will
+prepare the statements and the parameters and issue a single
+request to the Neo4j HTTP API. Note that the size of the batch is
+determined by the caller's array length.
 
 ## Versioning
 

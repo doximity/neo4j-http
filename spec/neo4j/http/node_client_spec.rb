@@ -45,6 +45,19 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
     end
   end
 
+  describe "delete_node" do
+    it "deletes the existing node" do
+      uuid = "MyUuid"
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: uuid, name: "Foo")
+      node1 = client.upsert_node(node_in)
+
+      client.delete_node(node_in)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: uuid)
+      expect(results.length).to eq(0)
+    end
+  end
+
   describe "find_node_by" do
     it "finds a node by the attributes given" do
       create_node(uuid: "Uuid2", name: "Bar")
