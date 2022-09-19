@@ -12,29 +12,8 @@ module Neo4j
       end
 
       def upsert_relationship(relationship:, from:, to:, create_nodes: false)
-        match_or_merge = create_nodes ? "MERGE" : "MATCH"
-        from_selector = build_match_selector(:from, from)
-        to_selector = build_match_selector(:to, to)
-        relationship_selector = build_match_selector(:relationship, relationship)
-
-        on_match = ""
-        if relationship.attributes.present?
-          on_match = <<-CYPHER
-            ON CREATE SET relationship += $relationship_attributes
-            ON MATCH SET relationship += $relationship_attributes
-          CYPHER
-        end
-
-        cypher = +<<-CYPHER
-          #{match_or_merge} (#{from_selector})
-          #{match_or_merge} (#{to_selector})
-          MERGE (from) - [#{relationship_selector}] - (to)
-          #{on_match}
-          RETURN from, to, relationship
-        CYPHER
-
         results = @cypher_client.execute_cypher(
-          cypher,
+          upsert_relationship_cypher(relationship: relationship, from: from, to: to, create_nodes: create_nodes),
           from: from,
           to: to,
           relationship: relationship,
@@ -73,18 +52,11 @@ module Neo4j
       end
 
       def delete_relationship(relationship:, from:, to:)
-        from_selector = build_match_selector(:from, from)
-        to_selector = build_match_selector(:to, to)
-        relationship_selector = build_match_selector(:relationship, relationship)
-
-        cypher = <<-CYPHER
-          MATCH (#{from_selector}) - [#{relationship_selector}] - (#{to_selector})
-          WITH from, to, relationship
-          DELETE relationship
-          RETURN from, to
-        CYPHER
-
-        results = @cypher_client.execute_cypher(cypher, from: from, to: to)
+        results = @cypher_client.execute_cypher(
+          delete_relationship_cypher(relationship: relationship, from: from, to: to),
+          from: from,
+          to: to
+        )
         results&.first
       end
 
@@ -92,17 +64,60 @@ module Neo4j
         # protection against mass deletion of relationships
         return if relationship.key_name.nil?
 
+        results = @cypher_client.execute_cypher(
+          delete_relationship_on_primary_key_cypher(relationship: relationship),
+          relationship: relationship
+        )
+        results&.first
+      end
+
+      protected
+
+      def upsert_relationship_cypher(relationship:, from:, to:, create_nodes:)
+        match_or_merge = create_nodes ? "MERGE" : "MATCH"
+        from_selector = build_match_selector(:from, from)
+        to_selector = build_match_selector(:to, to)
         relationship_selector = build_match_selector(:relationship, relationship)
 
-        cypher = <<-CYPHER
+        on_match = ""
+        if relationship.attributes.present?
+          on_match = <<-CYPHER
+            ON CREATE SET relationship += $relationship_attributes
+            ON MATCH SET relationship += $relationship_attributes
+          CYPHER
+        end
+
+        cypher = +<<-CYPHER
+          #{match_or_merge} (#{from_selector})
+          #{match_or_merge} (#{to_selector})
+          MERGE (from) - [#{relationship_selector}] - (to)
+          #{on_match}
+          RETURN from, to, relationship
+        CYPHER
+      end
+
+      def delete_relationship_cypher(relationship:, from:, to:)
+        from_selector = build_match_selector(:from, from)
+        to_selector = build_match_selector(:to, to)
+        relationship_selector = build_match_selector(:relationship, relationship)
+
+        <<-CYPHER
+          MATCH (#{from_selector}) - [#{relationship_selector}] - (#{to_selector})
+          WITH from, to, relationship
+          DELETE relationship
+          RETURN from, to
+        CYPHER
+      end
+
+      def delete_relationship_on_primary_key_cypher(relationship:)
+        relationship_selector = build_match_selector(:relationship, relationship)
+
+        <<-CYPHER
           MATCH () - [#{relationship_selector}] - ()
           WITH relationship
           DELETE relationship
           RETURN relationship
         CYPHER
-
-        results = @cypher_client.execute_cypher(cypher, relationship: relationship)
-        results&.first
       end
     end
   end

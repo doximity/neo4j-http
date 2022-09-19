@@ -14,27 +14,13 @@ module Neo4j
       def upsert_node(node)
         raise "#{node.key_name} value cannot be blank - (node keys: #{node.to_h.keys})" if node.key_value.blank?
 
-        cypher = <<-CYPHER
-          MERGE (node:#{node.label} {#{node.key_name}: $key_value})
-          ON CREATE SET node += $attributes
-          ON MATCH SET node += $attributes
-          return node
-        CYPHER
-
-        results = @cypher_client.execute_cypher(cypher, key_value: node.key_value, attributes: node.attributes)
+        results = @cypher_client.execute_cypher(upsert_node_cypher(node: node), key_value: node.key_value, attributes: node.attributes)
 
         results.first&.fetch("node")
       end
 
       def delete_node(node)
-        cypher = <<-CYPHER
-          MATCH (node:#{node.label} {#{node.key_name}: $key_value})
-          WITH node
-          DETACH DELETE node
-          RETURN node
-        CYPHER
-
-        results = @cypher_client.execute_cypher(cypher, key_value: node.key_value)
+        results = @cypher_client.execute_cypher(delete_node_cypher(node: node), key_value: node.key_value)
         results.first&.fetch("node")
       end
 
@@ -55,6 +41,24 @@ module Neo4j
       end
 
       protected
+
+      def upsert_node_cypher(node:)
+        <<-CYPHER
+          MERGE (node:#{node.label} {#{node.key_name}: $key_value})
+          ON CREATE SET node += $attributes
+          ON MATCH SET node += $attributes
+          return node
+        CYPHER
+      end
+
+      def delete_node_cypher(node:)
+        <<-CYPHER
+          MATCH (node:#{node.label} {#{node.key_name}: $key_value})
+          WITH node
+          DETACH DELETE node
+          RETURN node
+        CYPHER
+      end
 
       def build_selectors(attributes, node_name: :node)
         attributes.map do |key, value|
