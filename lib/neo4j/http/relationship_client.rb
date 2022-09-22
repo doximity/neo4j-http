@@ -33,14 +33,7 @@ module Neo4j
           RETURN from, to, relationship
         CYPHER
 
-        results = @cypher_client.execute_cypher(
-          cypher,
-          from: from,
-          to: to,
-          relationship: relationship,
-          relationship_attributes: relationship.attributes
-        )
-        results&.first
+        process_upsert_relationship(cypher: cypher, from: from, to: to, relationship: relationship)
       end
 
       def find_relationships(from:, relationship:, to:)
@@ -84,8 +77,7 @@ module Neo4j
           RETURN from, to
         CYPHER
 
-        results = @cypher_client.execute_cypher(cypher, from: from, to: to)
-        results&.first
+        process_delete_relationship(cypher: cypher, from: from, to: to)
       end
 
       def delete_relationship_on_primary_key(relationship:)
@@ -101,6 +93,28 @@ module Neo4j
           RETURN relationship
         CYPHER
 
+        process_delete_relationship_on_primary_key(cypher: cypher, relationship: relationship)
+      end
+
+      protected
+
+      def process_upsert_relationship(cypher:, from:, to:, relationship:)
+        results = @cypher_client.execute_cypher(
+          cypher,
+          from: from,
+          to: to,
+          relationship: relationship,
+          relationship_attributes: relationship.attributes
+        )
+        results&.first
+      end
+
+      def process_delete_relationship(cypher:, from:, to:)
+        results = @cypher_client.execute_cypher(cypher, from: from, to: to)
+        results&.first
+      end
+
+      def process_delete_relationship_on_primary_key(cypher:, relationship:)
         results = @cypher_client.execute_cypher(cypher, relationship: relationship)
         results&.first
       end

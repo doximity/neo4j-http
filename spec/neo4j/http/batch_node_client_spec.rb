@@ -33,7 +33,7 @@ RSpec.describe Neo4j::Http::BatchNodeClient, type: :uses_neo4j do
     it "updates the existing node" do
       uuid = "MyUuid"
       # Insert the node
-      node1 = create_node({ uuid: uuid, name: "Foo" })
+      node1 = create_node({uuid: uuid, name: "Foo"})
 
       expect(node1["uuid"]).to eq(uuid)
       expect(node1["name"]).to eq("Foo")
@@ -57,7 +57,7 @@ RSpec.describe Neo4j::Http::BatchNodeClient, type: :uses_neo4j do
     it "deletes a node" do
       uuid = "MyUuid"
       # Inspect the statement payload before executing
-      node1 = create_node({ uuid: uuid, name: "Foo" })
+      create_node({uuid: uuid, name: "Foo"})
       node_in = Neo4j::Http::Node.new(label: "Test", uuid: uuid)
 
       # Batch delete the node

@@ -49,7 +49,7 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
     it "deletes the existing node" do
       uuid = "MyUuid"
       node_in = Neo4j::Http::Node.new(label: "Test", uuid: uuid, name: "Foo")
-      node1 = client.upsert_node(node_in)
+      client.upsert_node(node_in)
 
       client.delete_node(node_in)
 
