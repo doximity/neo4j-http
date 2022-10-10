@@ -66,6 +66,38 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
       expect(results.map {|result| result.dig("node", "name") }).to contain_exactly("Foo", "Bar", "Baz")
     end
 
+    it "rolls back during a schema violation" do
+      Neo4j::Http::Client.execute_cypher <<~CYPHER
+        MATCH (n:Foo) DETACH DELETE n
+      CYPHER
+
+      Neo4j::Http::Client.execute_cypher <<~CYPHER
+        CREATE CONSTRAINT IF NOT EXISTS FOR (n:Foo) REQUIRE n.name IS UNIQUE
+      CYPHER
+
+      node_in = Neo4j::Http::Node.new(label: "Foo")
+
+      expect {
+        client.upsert_node(node_in, unwind: [
+          {
+            uuid: 1,
+            name: "Bar"
+          },
+          {
+            uuid: 2,
+            name: "Foo",
+          },
+          {
+            uuid: 3,
+            name: "Foo"
+          }
+        ])
+      }.to raise_error(Neo4j::Http::Errors::Neo::ClientError::Schema::ConstraintValidationFailed)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test) WHERE node.uuid IN $uuid RETURN node", uuid: [1, 2, 3])
+      expect(results.length).to eq(0)
+    end
+
     it "updates via unwind" do
       # Insert a node so it is existing
       node_in = Neo4j::Http::Node.new(label: "Test", uuid: 1, name: "replaceme")
