@@ -404,6 +404,54 @@ RSpec.describe Neo4j::Http::RelationshipClient do
     end
   end
 
+  describe "delete relationships via unwind" do
+    it "removes multiple relationships" do
+      relationship = Neo4j::Http::Relationship.new(label: "KNOWS")
+      client.upsert_relationship(relationship: relationship, from: from, to: to, create_nodes: true)
+
+      from = Neo4j::Http::Node.new(label: "Bot", uuid: "FromUuid2", name: "Bar")
+      to = Neo4j::Http::Node.new(label: "Bot", uuid: "ToUuid2", name: "Bar")
+      client.upsert_relationship(relationship: relationship, from: from, to: to, create_nodes: true)
+
+      results = Neo4j::Http::CypherClient.default.execute_cypher(
+        "MATCH (from:Bot)-[relationship:KNOWS]->(to:Bot)
+        WHERE from.uuid <> to.uuid
+        RETURN from, to, relationship"
+      )
+
+      expect(results.length).to eq(2)
+
+      node = Neo4j::Http::Node.new(label: "Bot")
+      client.delete_relationship(relationship: relationship, from: node, to: node, unwind: [
+        {
+          from: {
+            uuid: "FromUuid"
+          },
+          to: {
+            uuid: "ToUuid"
+          },
+          relationship: {}
+        },
+        {
+          from: {
+            uuid: "FromUuid2"
+          },
+          to: {
+            uuid: "ToUuid2"
+          },
+          relationship: {}
+        }
+      ])
+
+      results = Neo4j::Http::CypherClient.default.execute_cypher(
+        "MATCH (from:Bot)-[relationship:KNOWS]-(to:Bot)
+        RETURN from, to, relationship"
+      )
+
+      expect(results.length).to eq(0)
+    end
+  end
+
   describe "delete_relationship_on_primary_key" do
     it "removes the correct relationship" do
       relationship1 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "friend")
@@ -433,6 +481,39 @@ RSpec.describe Neo4j::Http::RelationshipClient do
       expect(result).to be_nil
 
       expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
+    end
+  end
+
+  describe "delete_relationship_on_primary_key via unwind" do
+    it "removes the correct relationship" do
+      relationship1 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "friend")
+      relationship2 = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how", how: "colleague")
+      client.upsert_relationship(relationship: relationship1, from: from, to: to, create_nodes: true)
+      client.upsert_relationship(relationship: relationship2, from: from, to: to, create_nodes: true)
+
+      expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
+
+      node = Neo4j::Http::Node.new(label: "Bot")
+      relationship = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how")
+      client.delete_relationship_on_primary_key(relationship: relationship, unwind: [
+        {
+          from: {},
+          to: {},
+          relationship: {
+            key_name: "how",
+            how: "friend"
+          }
+        }
+      ])
+
+      results = Neo4j::Http::CypherClient.default.execute_cypher(
+        "MATCH (from:Bot)-[relationship:KNOWS]->(to:Bot)
+        WHERE from.uuid <> to.uuid
+        RETURN from, to, relationship"
+      )
+
+      expect(results.length).to eq(1)
+      expect(results.first["relationship"]["how"]).to eq("colleague")
     end
   end
 

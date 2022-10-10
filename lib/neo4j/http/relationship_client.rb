@@ -63,7 +63,9 @@ module Neo4j
         )
       end
 
-      def delete_relationship(relationship:, from:, to:)
+      def delete_relationship(relationship:, from:, to:, unwind: nil)
+        return delete_relationship_via_unwind(relationship, from, to, unwind) if unwind.present?
+
         from_selector = build_match_selector(:from, from)
         to_selector = build_match_selector(:to, to)
         relationship_selector = build_match_selector(:relationship, relationship)
@@ -79,9 +81,10 @@ module Neo4j
         results&.first
       end
 
-      def delete_relationship_on_primary_key(relationship:)
+      def delete_relationship_on_primary_key(relationship:, unwind: nil)
         # protection against mass deletion of relationships
         return if relationship.key_name.nil?
+        return delete_relationship_on_primary_key_via_unwind(relationship, unwind) if unwind.present?
 
         relationship_selector = build_match_selector(:relationship, relationship)
 
@@ -127,6 +130,36 @@ module Neo4j
           cypher,
           batch: unwind
         )
+      end
+
+      def delete_relationship_via_unwind(relationship, from, to, unwind)
+        from_selector = build_unwind_match_selector(:from, from)
+        to_selector = build_unwind_match_selector(:to, to)
+        relationship_selector = build_unwind_match_selector(:relationship, relationship)
+
+        cypher = <<-CYPHER
+          UNWIND $batch as row
+          MATCH (#{from_selector}) - [#{relationship_selector}] - (#{to_selector})
+          WITH from, to, relationship
+          DELETE relationship
+          RETURN from, to
+        CYPHER
+
+        @cypher_client.execute_cypher(cypher, from: from, to: to, batch: unwind)
+      end
+
+      def delete_relationship_on_primary_key_via_unwind(relationship, unwind)
+        relationship_selector = build_unwind_match_selector(:relationship, relationship)
+
+        cypher = <<-CYPHER
+          UNWIND $batch as row
+          MATCH () - [#{relationship_selector}] - ()
+          WITH relationship
+          DELETE relationship
+          RETURN relationship
+        CYPHER
+
+        @cypher_client.execute_cypher(cypher, relationship: relationship, batch: unwind)
       end
 
       def build_match_selector(name, data)
