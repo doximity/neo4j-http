@@ -43,6 +43,53 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
       results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: uuid)
       expect(results.length).to eq(1)
     end
+
+    it "accepts an unwind argument" do
+      node_in = Neo4j::Http::Node.new(label: "Test")
+      node = client.upsert_node(node_in, unwind: [
+        {
+          uuid: 1,
+          name: "Foo"
+        },
+        {
+          uuid: 2,
+          name: "Bar",
+        },
+        {
+          uuid: 3,
+          name: "Baz"
+        }
+      ])
+
+      results = cypher_client.execute_cypher("MATCH (node:Test) WHERE node.uuid IN $uuid RETURN node", uuid: [1, 2, 3])
+      expect(results.length).to eq(3)
+      expect(results.map {|result| result.dig("node", "name") }).to contain_exactly("Foo", "Bar", "Baz")
+    end
+
+    it "updates via unwind" do
+      # Insert a node so it is existing
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 1, name: "replaceme")
+      node1 = client.upsert_node(node_in)
+
+      node_in = Neo4j::Http::Node.new(label: "Test")
+      node = client.upsert_node(node_in, unwind: [
+        {
+          # update the existing node
+          uuid: 1,
+          name: "Foo"
+        },
+        {
+          uuid: 2,
+          name: "Bar",
+        }
+      ])
+
+      results = cypher_client.execute_cypher("MATCH (node:Test { uuid: $uuid }) RETURN node", uuid: 1)
+      expect(results.map {|result| result.dig("node", "name") }).to contain_exactly("Foo")
+
+      results = cypher_client.execute_cypher("MATCH (node:Test { uuid: $uuid }) RETURN node", uuid: 2)
+      expect(results.map {|result| result.dig("node", "name") }).to contain_exactly("Bar")
+    end
   end
 
   describe "find_node_by" do

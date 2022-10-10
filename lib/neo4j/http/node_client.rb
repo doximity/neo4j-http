@@ -11,7 +11,9 @@ module Neo4j
         @cypher_client = cypher_client
       end
 
-      def upsert_node(node)
+      def upsert_node(node, unwind: nil)
+        return upsert_node_via_unwind(node, unwind) if unwind.present?
+
         raise "#{node.key_name} value cannot be blank - (node keys: #{node.to_h.keys})" if node.key_value.blank?
 
         cypher = <<-CYPHER
@@ -64,6 +66,20 @@ module Neo4j
             "#{node_name}.#{key} = $attributes.#{key}"
           end
         end.join(" AND ")
+      end
+
+      def upsert_node_via_unwind(node, unwind)
+        cypher = <<-CYPHER
+          UNWIND $batch as row
+          MERGE (node:#{node.label} {#{node.key_name}: row.#{node.key_name}})
+          ON CREATE SET node += row
+          ON MATCH SET node += row
+          return node
+        CYPHER
+
+        results = @cypher_client.execute_cypher(cypher, key_value: node.key_value, batch: unwind)
+
+        results.map { |result| result.fetch("node") }
       end
     end
   end
