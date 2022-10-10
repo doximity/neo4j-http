@@ -92,6 +92,50 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
     end
   end
 
+  describe "delete_node" do
+    it "removes a single node" do
+      # Insert a node so it is existing
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 1, name: "Foo")
+      node1 = client.upsert_node(node_in)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: 1)
+      expect(results.length).to eq(1)
+
+      client.delete_node(node_in)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: 1)
+      expect(results.length).to eq(0)
+    end
+
+    it "removes via unwind" do
+      # Insert a node so it is existing
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 1, name: "Foo")
+      node1 = client.upsert_node(node_in)
+
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 2, name: "Bar")
+      node1 = client.upsert_node(node_in)
+
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 3, name: "Baz")
+      node1 = client.upsert_node(node_in)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test) WHERE node.uuid IN $uuid RETURN node", uuid: [1, 2, 3])
+      expect(results.length).to eq(3)
+
+      node_in = Neo4j::Http::Node.new(label: "Test")
+      node = client.delete_node(node_in, unwind: [
+        {
+          uuid: 1
+        },
+        {
+          uuid: 2
+        }
+      ])
+
+      results = cypher_client.execute_cypher("MATCH (node:Test) WHERE node.uuid IN $uuid RETURN node", uuid: [1, 2, 3])
+      expect(results.length).to eq(1)
+    end
+  end
+
   describe "find_node_by" do
     it "finds a node by the attributes given" do
       create_node(uuid: "Uuid2", name: "Bar")

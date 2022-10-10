@@ -28,7 +28,9 @@ module Neo4j
         results.first&.fetch("node")
       end
 
-      def delete_node(node)
+      def delete_node(node, unwind: nil)
+        return delete_node_via_unwind(node, unwind) if unwind.present?
+
         cypher = <<-CYPHER
           MATCH (node:#{node.label} {#{node.key_name}: $key_value})
           WITH node
@@ -75,6 +77,20 @@ module Neo4j
           ON CREATE SET node += row
           ON MATCH SET node += row
           return node
+        CYPHER
+
+        results = @cypher_client.execute_cypher(cypher, key_value: node.key_value, batch: unwind)
+
+        results.map { |result| result.fetch("node") }
+      end
+
+      def delete_node_via_unwind(node, unwind)
+        cypher = <<-CYPHER
+          UNWIND $batch as row
+          MATCH (node:#{node.label} {#{node.key_name}: row.#{node.key_name}})
+          WITH node
+          DETACH DELETE node
+          RETURN node
         CYPHER
 
         results = @cypher_client.execute_cypher(cypher, key_value: node.key_value, batch: unwind)
