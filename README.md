@@ -82,12 +82,68 @@ Neo4j::Http::Client.find_nodes_by(label: "User", name: "Testing")
 Neo4j::Http::Client.delete_node(node)
 ```
 
+### Upsert and delete nodes in batch via UNWIND
+
+You can describe a node and then pass an array of objects to build nodes that pattern.
+When calling upsert_node, the variable `node` only needs to contain the `label:` keyword argument.
+
+```ruby
+node = Neo4j::Http::Node.new(label: "User")
+Neo4j::Http::Client.upsert_node(node, unwind: [
+  {
+    uuid: 1,
+    name: "Foo"
+  },
+  {
+    uuid: 2,
+    name: "Bar"
+  },
+  ...
+])
+```
+
 ### Create a new relationship, also creating the nodes if they do not exist
 ```ruby
 user1 = Neo4j::Http::Node.new(label: "User", uuid: SecureRandom.uuid)
 user2 = Neo4j::Http::Node.new(label: "User", uuid: SecureRandom.uuid)
 relationship = Neo4j::Http::Relationship.new(label: "KNOWS")
 Neo4j::Http::Client.upsert_relationship(relationship: relationship, from: user1, to: user2, create_nodes: true)
+```
+
+### Upsert and delete relationships in batch via UNWIND
+
+You can describe two nodes, and a relationship and then pass an array of objects to build that pattern.
+When calling upsert_relationship, the variable `node`, and `relationship` only needs to contain the `label:` keyword argument.
+
+```ruby
+from = Neo4j::Http::Node.new(label: "User")
+to = Neo4j::Http::Node.new(label: "Place")
+relationship = Neo4j::Http::Relationship.new(label: "TRAVELS_TO")
+Neo4j::Http::Client.upsert_relationship(node, unwind: [
+  {
+    from: {
+      uuid: 1
+    },
+    to: {
+      from: 2
+    },
+    relationship: {
+      vehicle: "car"
+    }
+  },
+  {
+    from: {
+      uuid: 3
+    },
+    to: {
+      from: 4
+    },
+    relationship: {
+      vehicle: "plane"
+    }
+  },
+  ...
+])
 ```
 
 ### Find an existing relationship

@@ -5,7 +5,8 @@ module Neo4j
     class Client
       CYPHER_CLIENT_METHODS = %i[execute_cypher].freeze
       NODE_CLIENT_METHODS = %i[delete_node find_node_by find_nodes_by upsert_node].freeze
-      RELATIONSHIP_CLIENT_METHODS = %i[delete_relationship upsert_relationship delete_relationship_on_primary_key].freeze
+      RELATIONSHIP_CLIENT_METHODS = %i[delete_relationship upsert_relationship
+        delete_relationship_on_primary_key].freeze
       CLIENT_METHODS = (CYPHER_CLIENT_METHODS + NODE_CLIENT_METHODS + RELATIONSHIP_CLIENT_METHODS).freeze
 
       class << self

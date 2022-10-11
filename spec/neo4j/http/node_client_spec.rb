@@ -43,6 +43,139 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
       results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: uuid)
       expect(results.length).to eq(1)
     end
+
+    it "accepts an unwind argument" do
+      node_in = Neo4j::Http::Node.new(label: "Test")
+      client.upsert_node(node_in, unwind: [
+        {
+          uuid: 1,
+          name: "Foo"
+        },
+        {
+          uuid: 2,
+          name: "Bar"
+        },
+        {
+          uuid: 3,
+          name: "Baz"
+        }
+      ])
+
+      results = cypher_client.execute_cypher("MATCH (node:Test) WHERE node.uuid IN $uuid RETURN node", uuid: [1, 2, 3])
+      expect(results.length).to eq(3)
+      expect(results.map { |result| result.dig("node", "name") }).to contain_exactly("Foo", "Bar", "Baz")
+    end
+
+    it "updates via unwind" do
+      # Insert a node so it is existing
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 1, name: "replaceme")
+      client.upsert_node(node_in)
+
+      node_in = Neo4j::Http::Node.new(label: "Test")
+      client.upsert_node(node_in, unwind: [
+        {
+          # update the existing node
+          uuid: 1,
+          name: "Foo"
+        },
+        {
+          uuid: 2,
+          name: "Bar"
+        }
+      ])
+
+      results = cypher_client.execute_cypher("MATCH (node:Test { uuid: $uuid }) RETURN node", uuid: 1)
+      expect(results.map { |result| result.dig("node", "name") }).to contain_exactly("Foo")
+
+      results = cypher_client.execute_cypher("MATCH (node:Test { uuid: $uuid }) RETURN node", uuid: 2)
+      expect(results.map { |result| result.dig("node", "name") }).to contain_exactly("Bar")
+    end
+  end
+
+  describe "unwind rollback" do
+    around do |example|
+      Neo4j::Http::Client.execute_cypher <<~CYPHER
+        MATCH (n:Foo) DETACH DELETE n
+      CYPHER
+
+      Neo4j::Http::Client.execute_cypher <<~CYPHER
+        CREATE CONSTRAINT test IF NOT EXISTS FOR (n:Foo) REQUIRE n.name IS UNIQUE
+      CYPHER
+
+      example.run
+
+      Neo4j::Http::Client.execute_cypher <<~CYPHER
+        DROP CONSTRAINT test
+      CYPHER
+    end
+
+    it "rolls back during a schema violation" do
+      node_in = Neo4j::Http::Node.new(label: "Foo")
+
+      expect {
+        client.upsert_node(node_in, unwind: [
+          {
+            uuid: 1,
+            name: "Bar"
+          },
+          {
+            uuid: 2,
+            name: "Foo"
+          },
+          {
+            uuid: 3,
+            name: "Foo"
+          }
+        ])
+      }.to raise_error(Neo4j::Http::Errors::Neo::ClientError::Schema::ConstraintValidationFailed)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test) WHERE node.uuid IN $uuid RETURN node", uuid: [1, 2, 3])
+      expect(results.length).to eq(0)
+    end
+  end
+
+  describe "delete_node" do
+    it "removes a single node" do
+      # Insert a node so it is existing
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 1, name: "Foo")
+      client.upsert_node(node_in)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: 1)
+      expect(results.length).to eq(1)
+
+      client.delete_node(node_in)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: 1)
+      expect(results.length).to eq(0)
+    end
+
+    it "removes via unwind" do
+      # Insert a node so it is existing
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 1, name: "Foo")
+      client.upsert_node(node_in)
+
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 2, name: "Bar")
+      client.upsert_node(node_in)
+
+      node_in = Neo4j::Http::Node.new(label: "Test", uuid: 3, name: "Baz")
+      client.upsert_node(node_in)
+
+      results = cypher_client.execute_cypher("MATCH (node:Test) WHERE node.uuid IN $uuid RETURN node", uuid: [1, 2, 3])
+      expect(results.length).to eq(3)
+
+      node_in = Neo4j::Http::Node.new(label: "Test")
+      client.delete_node(node_in, unwind: [
+        {
+          uuid: 1
+        },
+        {
+          uuid: 2
+        }
+      ])
+
+      results = cypher_client.execute_cypher("MATCH (node:Test) WHERE node.uuid IN $uuid RETURN node", uuid: [1, 2, 3])
+      expect(results.length).to eq(1)
+    end
   end
 
   describe "find_node_by" do
