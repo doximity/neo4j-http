@@ -87,10 +87,12 @@ RSpec.describe Neo4j::Http::RelationshipClient do
       create_node(from)
       create_node(to)
 
-      relationship_friend = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "uuid", uuid: "FriendUuid", how: "friend")
+      relationship_friend = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "uuid", uuid: "FriendUuid",
+        how: "friend")
       edge_a = create_relationship(from, relationship_friend, to)
 
-      relationship_colleague = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "uuid", uuid: "ColleagueUuid", how: "colleague")
+      relationship_colleague = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "uuid",
+        uuid: "ColleagueUuid", how: "colleague")
       edge_b = create_relationship(from, relationship_colleague, to)
 
       expect(edge_a["relationship"]["uuid"]).to eq("FriendUuid")
@@ -143,7 +145,7 @@ RSpec.describe Neo4j::Http::RelationshipClient do
           relationship: relationship,
           from: Neo4j::Http::Node.new(label: "Bot"),
           to: Neo4j::Http::Node.new(label: "Bot"),
-          create_nodes: true,                                 # <-- this is the subject of the test
+          create_nodes: true, # <-- this is the subject of the test
           unwind: [
             {
               from: {
@@ -231,7 +233,7 @@ RSpec.describe Neo4j::Http::RelationshipClient do
     end
 
     it "updates two different relationships on different nodes" do
-      results = client.upsert_relationship(
+      client.upsert_relationship(
         relationship: relationship,
         from: Neo4j::Http::Node.new(label: "Bot"),
         to: Neo4j::Http::Node.new(label: "Bot"),
@@ -358,8 +360,8 @@ RSpec.describe Neo4j::Http::RelationshipClient do
 
       expect(results.length).to eq(2)
 
-      edge_a = results.detect { |result| result["relationship"]["uuid"] == "FriendUuid"}
-      edge_b = results.detect { |result| result["relationship"]["uuid"] == "ColleagueUuid"}
+      edge_a = results.detect { |result| result["relationship"]["uuid"] == "FriendUuid" }
+      edge_b = results.detect { |result| result["relationship"]["uuid"] == "ColleagueUuid" }
 
       expect(edge_a["relationship"]["uuid"]).to eq("FriendUuid")
       expect(edge_a["relationship"]["how"]).to eq("friend")
@@ -493,7 +495,6 @@ RSpec.describe Neo4j::Http::RelationshipClient do
 
       expect(client.find_relationships(relationship: relationship, from: from, to: to).count).to eq(2)
 
-      node = Neo4j::Http::Node.new(label: "Bot")
       relationship = Neo4j::Http::Relationship.new(label: "KNOWS", primary_key_name: "how")
       client.delete_relationship_on_primary_key(relationship: relationship, unwind: [
         {
