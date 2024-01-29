@@ -124,6 +124,29 @@ cypher_client = Neo4j::Http::CypherClient.new(config)
 node_client = Neo4j::Http::NodeClient.new(cypher_client)
 ```
 
+## Batch operations
+
+The `Neo4j::Http::Client.in_batch` will yield a batch client. It can be used like:
+
+```ruby
+Neo4j::Http::Client.in_batch do |tx|
+  [
+    tx.upsert_node(node),
+    tx.upsert_node(node2),
+    tx.upsert_relationship(relationship: relationship, from: from, to: to)
+  ]
+end
+```
+
+All of the commands need to chain off of the variable exposed by the block in order to
+prepare the operations for the batch. These are not immediately invoked like their
+single operation counterparts. The syntax and arguments are identical.
+
+The array of statements will be passed into a batch client that will
+prepare the statements and the parameters and issue a single
+request to the Neo4j HTTP API. Note that the size of the batch is
+determined by the caller's array length.
+
 ## Versioning
 
 This project follows [semantic versioning](https://semver.org).

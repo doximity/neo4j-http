@@ -17,6 +17,11 @@ module Neo4j
           relationship_client = Http::RelationshipClient.new(cypher_client)
           @default ||= new(cypher_client, node_client, relationship_client)
         end
+
+        def in_batch &block
+          batch_client = Neo4j::Http::BatchClient
+          batch_client.execute_cypher yield(batch_client)
+        end
       end
 
       attr_accessor :cypher_client, :node_client, :relationship_client

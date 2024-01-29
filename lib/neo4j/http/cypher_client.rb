@@ -47,7 +47,7 @@ module Neo4j
       protected
 
       delegate :auth_token, :transaction_path, to: :@configuration
-      def check_errors!(cypher, response, parameters)
+      def check_errors!(cypher, response, parameters = {})
         raise Neo4j::Http::Errors::InvalidConnectionUrl, response.status if response.status == 404
         if response.body["errors"].any? { |error| error["message"][/Routing WRITE queries is not supported/] }
           raise Neo4j::Http::Errors::ReadOnlyError

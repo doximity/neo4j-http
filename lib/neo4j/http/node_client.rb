@@ -21,9 +21,7 @@ module Neo4j
           return node
         CYPHER
 
-        results = @cypher_client.execute_cypher(cypher, key_value: node.key_value, attributes: node.attributes)
-
-        results.first&.fetch("node")
+        process_upsert_node(cypher: cypher, node: node)
       end
 
       def delete_node(node)
@@ -34,8 +32,7 @@ module Neo4j
           RETURN node
         CYPHER
 
-        results = @cypher_client.execute_cypher(cypher, key_value: node.key_value)
-        results.first&.fetch("node")
+        process_delete_node(cypher: cypher, node: node)
       end
 
       def find_node_by(label:, **attributes)
@@ -55,6 +52,16 @@ module Neo4j
       end
 
       protected
+
+      def process_upsert_node(cypher:, node:)
+        results = @cypher_client.execute_cypher(cypher, key_value: node.key_value, attributes: node.attributes)
+        results.first&.fetch("node")
+      end
+
+      def process_delete_node(cypher:, node:)
+        results = @cypher_client.execute_cypher(cypher, key_value: node.key_value)
+        results.first&.fetch("node")
+      end
 
       def build_selectors(attributes, node_name: :node)
         attributes.map do |key, value|
