@@ -26,11 +26,8 @@ module Neo4j
       def transaction_path
         # v3.5 - /db/data/transaction/commit
         # v4.x - /db/#{database_name}/tx/commit
-        if database_name
-          "/db/#{database_name}/tx/commit"
-        else
-          "/db/data/transaction/commit"
-        end
+        # https://docs.aws.amazon.com/neptune/latest/userguide/access-graph-opencypher-queries.html
+        "/openCypher"
       end
 
       def auth_token
