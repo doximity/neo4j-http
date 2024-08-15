@@ -72,8 +72,9 @@ module Neo4j
 
       def build_connection(access_mode)
         # https://neo4j.com/docs/http-api/current/actions/transaction-configuration/
-        headers = build_http_headers.merge({"access-mode" => access_mode})
-        Faraday.new(url: @configuration.uri, headers: headers, request: build_request_options) do |f|
+        headers = build_http_headers
+        # TODO we disable SSL verification for development env
+        Faraday.new(url: @configuration.uri, headers: headers, request: build_request_options, ssl: { verify: false }) do |f|
           f.request :json # encode req bodies as JSON
           f.request :retry # retry transient failures
           f.response :json # decode response bodies as JSON
@@ -90,16 +91,11 @@ module Neo4j
       end
 
       def build_http_headers
-        {
-          "User-Agent" => @configuration.user_agent,
-          "Accept" => "application/json"
-        }.merge(authentication_headers)
+        return {}
       end
 
       def authentication_headers
-        return {} if auth_token.blank?
-
-        {"Authentication" => "Basic #{auth_token}"}
+        return {}
       end
     end
   end
