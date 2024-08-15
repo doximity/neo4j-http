@@ -46,12 +46,13 @@ module Neo4j
       delegate :auth_token, :transaction_path, to: :@configuration
       def check_errors!(cypher, response, parameters)
         raise Neo4j::Http::Errors::InvalidConnectionUrl, response.status if response.status == 404
-        if response.body["errors"].any? { |error| error["message"][/Routing WRITE queries is not supported/] }
-          raise Neo4j::Http::Errors::ReadOnlyError
-        end
+        # Neptune error format:
+        # {"requestId":"c1470a57-7bd0-4b88-b86b-71e64e7e6a2d","code":"MalformedQueryException",
+        # "detailedMessage":"It is not allowed to refer to variables in LIMIT (line 1, column 54 (offset: 53))",
+        # "message":"It is not allowed to refer to variables in LIMIT (line 1, column 54 (offset: 53))"}
 
         body = response.body || {}
-        errors = body.fetch("errors", [])
+        errors = body.fetch("message", [])
         return body.fetch("results", {}) unless errors.present?
 
         error = errors.first
@@ -59,11 +60,8 @@ module Neo4j
       end
 
       def raise_error(error, cypher, parameters = {})
-        code = error["code"]
-        message = error["message"]
-        klass = find_error_class(code)
         parameters = JSON.pretty_generate(parameters.as_json)
-        raise klass, "#{code} - #{message}\n cypher: #{cypher} \n parameters given: \n#{parameters}"
+        raise Neo4j::Http::Errors::Neo4jCodedError, "#{error}\n cypher: #{cypher} \n parameters given: \n#{parameters}"
       end
 
       def find_error_class(code)
