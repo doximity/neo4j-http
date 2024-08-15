@@ -24,20 +24,17 @@ module Neo4j
         # for improved routing performance on read only queries
         access_mode = parameters.delete(:access_mode) || @configuration.access_mode
 
+        # https://docs.aws.amazon.com/neptune/latest/userguide/opencypher-parameterized-queries.html
         request_body = {
-          statements: [
-            {
-              statement: cypher,
-              parameters: parameters.as_json
-            }
-          ]
+          query: cypher,
+          parameters: parameters.as_json
         }
 
         @connection = @injected_connection || connection(access_mode)
         response = @connection.post(transaction_path, request_body)
         results = check_errors!(cypher, response, parameters)
 
-        Neo4j::Http::Results.parse(results&.first || {})
+        Neo4j::Http::Results.parse(results || [])
       end
 
       def connection(access_mode)
