@@ -58,12 +58,15 @@ module Neo4j
         results.map do |result|
           entries = {}
           result.each_pair do |key, value|
-            meta = {
-              "id" => value["~id"],
-              "type" => value["~entityType"],
-            }
-
-            entries[key] = value["~properties"].merge({ "_neo4j_meta_data" => meta })
+            if value.is_a?(Hash)
+              meta = {
+                "id" => value["~id"],
+                "type" => value["~entityType"],
+              }
+              entries[key] = (value["~properties"] || {}).merge({ "_neo4j_meta_data" => meta }).with_indifferent_access
+            else
+              entries[key] = value
+            end
           end
           entries
         end
