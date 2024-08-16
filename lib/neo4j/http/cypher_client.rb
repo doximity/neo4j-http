@@ -52,10 +52,9 @@ module Neo4j
         # "message":"It is not allowed to refer to variables in LIMIT (line 1, column 54 (offset: 53))"}
 
         body = response.body || {}
-        errors = body.fetch("message", [])
-        return body.fetch("results", {}) unless errors.present?
+        error = body.fetch("message", [])
+        return body.fetch("results", {}) unless error.present?
 
-        error = errors.first
         raise_error(error, cypher, parameters)
       end
 
