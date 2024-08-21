@@ -11,7 +11,7 @@ module Neo4j
           # Recurse on hashes
           # Hoist ~properties key
           new_hash = {}
-          results = results.except("~properties").merge(results["~properties"]) if results.key?("~properties")
+          results = results.select {|k, _| k[0] != "~" }.merge(results["~properties"]) if results.key?("~properties")
 
           results.each_pair do |k,v|
             new_hash[k] = self.parse(v)

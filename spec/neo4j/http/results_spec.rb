@@ -50,11 +50,6 @@ RSpec.describe Neo4j::Http::Results, type: :uses_neo4j do
       "icao" => "KSEA",
       "code" => "SEA",
       "longest" => 11901,
-      "~id" => "22",
-      "~entityType" => "node",
-      "~labels" => [
-        "airport"
-      ],
     }
     expect(output[0]["a"]).to match(expected)
   end
@@ -82,11 +77,6 @@ RSpec.describe Neo4j::Http::Results, type: :uses_neo4j do
     output = described_class.parse(results["results"])
     expected = {
      "dist"=>956,
-     "~end" => "151",
-     "~entityType" => "relationship",
-     "~id" => "7389",
-     "~start" => "22",
-     "~type" => "route",
     }
     expect(output[0]["r"]).to eq(expected)
   end
