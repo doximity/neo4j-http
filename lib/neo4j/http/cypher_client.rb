@@ -4,6 +4,7 @@ require "forwardable"
 require "faraday"
 require "faraday/retry"
 require "faraday_middleware"
+require "pg"
 
 module Neo4j
   module Http
@@ -18,26 +19,52 @@ module Neo4j
       end
 
       # Executes a cypher query, passing in the cypher statement, with parameters as an optional hash
-      # e.g. Neo4j::Http::Cypherclient.execute_cypher("MATCH (n { foo: $foo }) LIMIT 1 RETURN n", { foo: "bar" })
+      # e.g. Neo4j::Http::Cypherclient.execute_cypher("MATCH (n { foo: $foo }) LIMIT 1 RETURN n", ["n"], { foo: "bar" })
       def execute_cypher(cypher, parameters = {})
         # By default the access mode is set to "WRITE", but can be set to "READ"
         # for improved routing performance on read only queries
         access_mode = parameters.delete(:access_mode) || @configuration.access_mode
 
-        request_body = {
-          statements: [
-            {
-              statement: cypher,
-              parameters: parameters.as_json
-            }
-          ]
-        }
-
         @connection = @injected_connection || connection(access_mode)
-        response = @connection.post(transaction_path, request_body)
-        results = check_errors!(cypher, response, parameters)
 
-        Neo4j::Http::Results.parse(results&.first || {})
+        prepared_statement = <<~SQL
+          LOAD 'age';
+          SET search_path = ag_catalog, "$user", public;
+
+          PREPARE cypher_stored_procedure(agtype) AS
+          SELECT *
+          FROM cypher('#{@configuration.database_name}', $$
+            #{ cypher }
+          $$, $1)
+          AS (#{return_syntax(cypher, [])});
+
+          EXECUTE cypher_stored_procedure('#{parameters.to_json}');
+        SQL
+
+        # puts prepared_statement
+
+        response = @connection.exec(prepared_statement)
+        Neo4j::Http::Results.parse(response || [])
+      rescue => e
+        raise_error(e.message, cypher, parameters)
+      end
+
+      # https://age.apache.org/age-manual/master/clauses/return.html#return-all-elements
+      # AGE is different in that we have to separately declare each return as an agtype
+      def return_syntax(cypher, returns)
+        # You've specified your own RETURN variables
+        return Array(returns).map { |r| "#{r} agtype" }.join(", ") if returns.any?
+
+        # Will attempt a crude parsing to extract RETURN variables
+        # https://rubular.com/r/0TX7F3uTTfbUvW
+        groups = cypher.match(/RETURN ((?:\w|,\s?)*)/i)
+
+        if groups && groups[1]
+          groups[1].split(",").map { |r| "#{r.delete(" ")} agtype"}.join(", ")
+        else
+          puts "Failed to automatically extract RETURN variables. Pass them explicitly via execute_cypher(cypher, returns, params)"
+          "v agtype"
+        end
       end
 
       def connection(access_mode)
@@ -76,13 +103,15 @@ module Neo4j
       end
 
       def build_connection(access_mode)
+        PG::Connection.new(@configuration.uri)
+
         # https://neo4j.com/docs/http-api/current/actions/transaction-configuration/
-        headers = build_http_headers.merge({"access-mode" => access_mode})
-        Faraday.new(url: @configuration.uri, headers: headers, request: build_request_options) do |f|
-          f.request :json # encode req bodies as JSON
-          f.request :retry # retry transient failures
-          f.response :json # decode response bodies as JSON
-        end
+        # headers = build_http_headers.merge({"access-mode" => access_mode})
+        # Faraday.new(url: @configuration.uri, headers: headers, request: build_request_options) do |f|
+        #   f.request :json # encode req bodies as JSON
+        #   f.request :retry # retry transient failures
+        #   f.response :json # decode response bodies as JSON
+        # end
       end
 
       def build_request_options

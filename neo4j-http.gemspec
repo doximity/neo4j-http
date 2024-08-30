@@ -27,4 +27,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "faraday_middleware"
   spec.add_runtime_dependency "faraday-retry"
   spec.add_runtime_dependency "pry"
+  spec.add_runtime_dependency "pg"
 end

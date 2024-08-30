@@ -6,6 +6,7 @@ PATH
       faraday (< 2)
       faraday-retry
       faraday_middleware
+      pg
       pry
 
 GEM
@@ -53,6 +54,7 @@ GEM
     parallel (1.22.1)
     parser (3.1.1.0)
       ast (~> 2.4.1)
+    pg (1.5.7)
     pry (0.14.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
@@ -101,6 +103,7 @@ PLATFORMS
 
 DEPENDENCIES
   neo4j-http!
+  pg
   rake (~> 12.0)
   rspec (~> 3.0)
   standard

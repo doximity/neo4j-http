@@ -16,7 +16,7 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
       expect(node["_neo4j_meta_data"]).not_to be_nil
       expect(node["_neo4j_meta_data"]["id"]).not_to be_nil
 
-      results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: uuid)
+      results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", { uuid: uuid })
       expect(results.length).to eq(1)
       node = results&.first&.fetch("node", nil)
       expect(node).not_to be_nil

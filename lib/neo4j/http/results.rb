@@ -3,26 +3,39 @@ require "forwardable"
 module Neo4j
   module Http
     class Results
-      # Example result set:
-      # [{"columns"=>["n"],
-      # "data"=>
-      # [{"row"=>[{"name"=>"Foo", "uuid"=>"8c7dcfda-d848-4937-a91a-2e6debad2dd6"}],
-      #   "meta"=>[{"id"=>242, "type"=>"node", "deleted"=>false}]}]}]
-      #
+      # [{"n"=>"{\"id\": 844424930131972, \"label\": \"User\", \"properties\": {\"name\": \"ben\"}}::vertex"}]
       def self.parse(results)
-        columns = results["columns"]
-        data = results["data"]
+        x = results.map do |result|
 
-        data.map do |result|
-          row = result["row"] || []
-          meta = result["meta"] || []
-          compacted_data = row.each_with_index.map do |attributes, index|
-            row_meta = meta[index] || {}
-            attributes["_neo4j_meta_data"] = row_meta if attributes.is_a?(Hash)
-            attributes
+          response = result.dup
+          result.each_pair do |key, value|
+            value.slice!("::vertex")
+            value.slice!("::edge")
+            response[key] = JSON.parse(value)
           end
+          response
+        end
 
-          columns.zip(compacted_data).to_h.with_indifferent_access
+        hoist_properties(x)
+      end
+
+      def self.hoist_properties(results)
+        if results.is_a?(Array)
+          # Recuse on arrays
+          return results.map { |a| self.hoist_properties(a) }
+        elsif results.is_a?(Hash)
+          # Recurse on hashes
+          # Hoist ~properties key
+          new_hash = {}
+          results = results.merge(results["properties"]) if results.key?("properties")
+
+          results.each_pair do |k,v|
+            new_hash[k] = self.hoist_properties(v)
+          end
+          return new_hash
+        else
+          # Primative value
+          return results
         end
       end
     end
