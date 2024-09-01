@@ -16,8 +16,7 @@ module Neo4j
 
         cypher = <<-CYPHER
           MERGE (node:#{node.label} {#{node.key_name}: $key_value})
-          ON CREATE SET node += $attributes
-          ON MATCH SET node += $attributes
+          SET node += $attributes
           return node
         CYPHER
 

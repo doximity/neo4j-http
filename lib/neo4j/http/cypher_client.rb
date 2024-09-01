@@ -27,6 +27,8 @@ module Neo4j
 
         @connection = @injected_connection || connection(access_mode)
 
+        cypher = expand_parameters_for_set(cypher, parameters)
+
         prepared_statement = <<~SQL
           LOAD 'age';
           SET search_path = ag_catalog, "$user", public;
@@ -41,7 +43,7 @@ module Neo4j
           EXECUTE cypher_stored_procedure('#{parameters.to_json}');
         SQL
 
-        # puts prepared_statement
+        puts prepared_statement
 
         response = @connection.exec(prepared_statement)
         Neo4j::Http::Results.parse(response || [])
@@ -49,20 +51,30 @@ module Neo4j
         raise_error(e.message, cypher, parameters)
       end
 
+      def expand_parameters_for_set(cypher, parameters)
+        if cypher.match(/SET node \+\= \$attributes/)
+          new_set_syntax = "SET " + parameters[:attributes].map { |k,v| "node.#{k} = '#{v}'"}.join(", ")
+          cypher.sub(/SET node \+\= \$attributes/, new_set_syntax)
+
+        elsif cypher.match(/SET relationship \+\= \$relationship_attributes/)
+          new_set_syntax = "SET " + parameters[:relationship_attributes].map { |k,v| "relationship.#{k} = '#{v}'"}.join(", ")
+          cypher.sub(/SET relationship \+\= \$relationship_attributes/, new_set_syntax)
+
+        else
+          cypher
+        end
+      end
+
       # https://age.apache.org/age-manual/master/clauses/return.html#return-all-elements
       # AGE is different in that we have to separately declare each return as an agtype
       def return_syntax(cypher, returns)
-        # You've specified your own RETURN variables
-        return Array(returns).map { |r| "#{r} agtype" }.join(", ") if returns.any?
-
         # Will attempt a crude parsing to extract RETURN variables
         # https://rubular.com/r/0TX7F3uTTfbUvW
         groups = cypher.match(/RETURN ((?:\w|,\s?)*)/i)
 
         if groups && groups[1]
-          groups[1].split(",").map { |r| "#{r.delete(" ")} agtype"}.join(", ")
+          groups[1].split(",").map { |r| "\"#{r.delete(" ")}\" agtype"}.join(", ")
         else
-          puts "Failed to automatically extract RETURN variables. Pass them explicitly via execute_cypher(cypher, returns, params)"
           "v agtype"
         end
       end

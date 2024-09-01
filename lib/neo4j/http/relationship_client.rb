@@ -17,11 +17,12 @@ module Neo4j
         to_selector = build_match_selector(:to, to)
         relationship_selector = build_match_selector(:relationship, relationship)
 
+
+
         on_match = ""
         if relationship.attributes.present?
           on_match = <<-CYPHER
-            ON CREATE SET relationship += $relationship_attributes
-            ON MATCH SET relationship += $relationship_attributes
+            SET relationship += $relationship_attributes
           CYPHER
         end
 

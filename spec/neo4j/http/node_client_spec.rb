@@ -13,8 +13,6 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
       node = client.upsert_node(node_in)
       expect(node["uuid"]).to eq(uuid)
       expect(node["name"]).to eq("Foo")
-      expect(node["_neo4j_meta_data"]).not_to be_nil
-      expect(node["_neo4j_meta_data"]["id"]).not_to be_nil
 
       results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", { uuid: uuid })
       expect(results.length).to eq(1)
@@ -29,16 +27,12 @@ RSpec.describe Neo4j::Http::NodeClient, type: :uses_neo4j do
       node1 = client.upsert_node(node_in)
       expect(node1["uuid"]).to eq(uuid)
       expect(node1["name"]).to eq("Foo")
-      expect(node1["_neo4j_meta_data"]).not_to be_nil
-      expect(node1["_neo4j_meta_data"]["id"]).not_to be_nil
 
       node_in = Neo4j::Http::Node.new(label: "Test", uuid: uuid, name: "Bar")
       node2 = client.upsert_node(node_in)
       expect(node2["uuid"]).to eq(uuid)
       expect(node2["name"]).to eq("Bar")
       expect(node2["_db_id"]).to eq(node1["_db_id"])
-      expect(node2["_neo4j_meta_data"]).not_to be_nil
-      expect(node2["_neo4j_meta_data"]["id"]).to eq(node1["_neo4j_meta_data"]["id"])
 
       results = cypher_client.execute_cypher("MATCH (node:Test {uuid: $uuid}) RETURN node", uuid: uuid)
       expect(results.length).to eq(1)
