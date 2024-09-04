@@ -12,35 +12,48 @@ module Neo4j
       end
 
       def upsert_relationship(relationship:, from:, to:, create_nodes: false)
-        match_or_merge = create_nodes ? "MERGE" : "MATCH"
-        from_selector = build_match_selector(:from, from)
-        to_selector = build_match_selector(:to, to)
-        relationship_selector = build_match_selector(:relationship, relationship)
-
-
-
-        on_match = ""
-        if relationship.attributes.present?
-          on_match = <<-CYPHER
-            SET relationship += $relationship_attributes
-          CYPHER
+        if create_nodes
+          NodeClient.new(@cypher_client).upsert_node(from)
+          NodeClient.new(@cypher_client).upsert_node(to)
         end
 
-        cypher = +<<-CYPHER
-          #{match_or_merge} (#{from_selector})
-          #{match_or_merge} (#{to_selector})
-          MERGE (from) - [#{relationship_selector}] - (to)
-          #{on_match}
-          RETURN from, to, relationship
-        CYPHER
+        from_selector = build_match_selector(:from, from)
+        to_selector = build_match_selector(:to, to)
+        relationship_selector = build_relationship_match_selector(relationship)
 
-        results = @cypher_client.execute_cypher(
-          cypher,
-          from: from,
-          to: to,
-          relationship: relationship,
-          relationship_attributes: relationship.attributes
-        )
+        # cypher = +<<-CYPHER
+        #   MATCH (#{from_selector})-[#{relationship_selector}]-(#{to_selector})
+        #   RETURN from, to, relationship
+        # CYPHER
+
+        # results = @cypher_client.execute_cypher(
+        #   cypher,
+        #   from: from,
+        #   to: to,
+        #   relationship: relationship,
+        #   relationship_attributes: relationship.attributes
+        # )
+
+        # This is necessary because AGE ignores MERGE + SET on relationship attributes
+        # Because of this we cannot both MATCH on properties then SET different properties
+        # The relationship has to be deleted, then subsequently recreated
+        if relationship.attributes.present?
+          delete_relationship(relationship:, from:, to:)
+          attributes = relationship.attributes.reduce([]) {|sum, (k,v)| sum << "#{k}: '#{v}'"}.join(", ")
+          cypher = <<-CYPHER
+            MATCH (#{from_selector}), (#{to_selector})
+            MERGE (from)-[relationship:#{relationship.label} { #{attributes} }]-(to)
+            RETURN from, to, relationship
+          CYPHER
+
+          results = @cypher_client.execute_cypher(
+            cypher,
+            from: from,
+            to: to,
+            relationship: relationship,
+            relationship_attributes: relationship.attributes
+          )
+        end
         results&.first
       end
 
@@ -73,10 +86,18 @@ module Neo4j
         selector
       end
 
+      def build_relationship_match_selector(data)
+        if data.key_value.present?
+          "relationship:#{data.label} { #{data.key_name}: '#{data.key_value}' }"
+        else
+          "relationship:#{data.label} { uuid: '#{data.uuid}' }"
+        end
+      end
+
       def delete_relationship(relationship:, from:, to:)
         from_selector = build_match_selector(:from, from)
         to_selector = build_match_selector(:to, to)
-        relationship_selector = build_match_selector(:relationship, relationship)
+        relationship_selector = build_relationship_match_selector(relationship)
 
         cypher = <<-CYPHER
           MATCH (#{from_selector}) - [#{relationship_selector}] - (#{to_selector})

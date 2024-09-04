@@ -8,7 +8,7 @@ RSpec.describe Neo4j::Http::RelationshipClient do
 
   let(:from) { Neo4j::Http::Node.new(label: "Bot", uuid: "FromUuid", name: "Foo") }
   let(:to) { Neo4j::Http::Node.new(label: "Bot", uuid: "ToUuid", name: "Bar") }
-  let(:relationship) { Neo4j::Http::Relationship.new(label: "KNOWS") }
+  let(:relationship) { Neo4j::Http::Relationship.new(label: "KNOWS", uuid: "RelationshipUuid") }
 
   describe "upsert_relationship" do
     it "creates a relationship between two nodes" do
@@ -108,7 +108,7 @@ RSpec.describe Neo4j::Http::RelationshipClient do
 
   describe "find_relationship" do
     it "finds an existing relationship" do
-      relationship = Neo4j::Http::Relationship.new(label: "KNOWS", value: 42.43)
+      relationship = Neo4j::Http::Relationship.new(label: "KNOWS", uuid: "RelationshipUuid", value: 42.43)
       result = client.upsert_relationship(relationship: relationship, from: from, to: to, create_nodes: true)
       expect(result.keys).to eq(["from", "to", "relationship"])
 
@@ -116,13 +116,13 @@ RSpec.describe Neo4j::Http::RelationshipClient do
       expect(result.keys).to eq(["from", "to", "relationship"])
       expect(result["from"]["uuid"]).to eq("FromUuid")
       expect(result["to"]["uuid"]).to eq("ToUuid")
-      expect(result["relationship"]["value"]).to eq(42.43)
+      expect(result["relationship"]["value"]).to eq("42.43")
     end
   end
 
   describe "delete_relationship" do
     it "Removes the relationship between the nodes" do
-      relationship = Neo4j::Http::Relationship.new(label: "KNOWS")
+      relationship = Neo4j::Http::Relationship.new(label: "KNOWS", uuid: "RelationshipUuid")
       result = client.upsert_relationship(relationship: relationship, from: from, to: to, create_nodes: true)
       expect(result.keys).to eq(["from", "to", "relationship"])
 

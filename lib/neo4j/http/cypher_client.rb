@@ -19,7 +19,7 @@ module Neo4j
       end
 
       # Executes a cypher query, passing in the cypher statement, with parameters as an optional hash
-      # e.g. Neo4j::Http::Cypherclient.execute_cypher("MATCH (n { foo: $foo }) LIMIT 1 RETURN n", ["n"], { foo: "bar" })
+      # e.g. Neo4j::Http::Cypherclient.execute_cypher("MATCH (n { foo: $foo }) LIMIT 1 RETURN n", { foo: "bar" })
       def execute_cypher(cypher, parameters = {})
         # By default the access mode is set to "WRITE", but can be set to "READ"
         # for improved routing performance on read only queries
@@ -42,8 +42,6 @@ module Neo4j
 
           EXECUTE cypher_stored_procedure('#{parameters.to_json}');
         SQL
-
-        puts prepared_statement
 
         response = @connection.exec(prepared_statement)
         Neo4j::Http::Results.parse(response || [])
