@@ -1,0 +1,20 @@
+name: ▶️ Re-Publish Release
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Enter the existing release tag you wish to re-publish the gem from
+        required: true
+        type: string
+
+jobs:
+  republish-release:
+    uses: doximity/dox-gh-shared-workflows/.github/workflows/gem_republish.yml@master
+    with:              
+      release_tag: ${{ inputs.release_tag }}
+    secrets: inherit
