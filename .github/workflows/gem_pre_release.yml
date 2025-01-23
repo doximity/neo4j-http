@@ -13,13 +13,6 @@ on:
         required: false
         type: boolean
         default: false
-      target_gem:
-        description: "Gem to pre-release"
-        required: true
-        default: "neo4j-http"
-        type: choice
-        options:
-          - neo4j-http
 
 jobs:
   pre-release:
@@ -27,7 +20,6 @@ jobs:
     with:
       ruby_version: ${{ inputs.ruby_version }}
       create-release: ${{ inputs.create-release }}
-      gemspec_dir: "lib/gems/${{ inputs.target_gem}}/"
     permissions:
       contents: write
     secrets: inherit

@@ -1,0 +1,15 @@
+name: "Create final release"
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  final-release:
+    uses: doximity/dox-gh-shared-workflows/.github/workflows/gem_final_release.yml@master
+    with:              
+      create-release: true
+    permissions:
+      contents: write
+    secrets: inherit
