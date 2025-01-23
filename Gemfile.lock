@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    neo4j-http (1.2.0.bsimpson)
+    neo4j-http (1.2.0)
       activesupport (>= 5.2)
       faraday (~> 2.0)
       faraday-httpclient
