@@ -3,7 +3,6 @@
 require "forwardable"
 require "faraday"
 require "faraday/retry"
-require "faraday_middleware"
 
 module Neo4j
   module Http
