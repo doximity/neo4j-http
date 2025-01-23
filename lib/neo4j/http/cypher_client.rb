@@ -2,6 +2,7 @@
 
 require "forwardable"
 require "faraday"
+require "faraday/httpclient"
 require "faraday/retry"
 
 module Neo4j
@@ -78,6 +79,7 @@ module Neo4j
         # https://neo4j.com/docs/http-api/current/actions/transaction-configuration/
         headers = build_http_headers.merge({"access-mode" => access_mode})
         Faraday.new(url: @configuration.uri, headers: headers, request: build_request_options) do |f|
+          f.adapter :httpclient
           f.request :json # encode req bodies as JSON
           f.request :retry # retry transient failures
           f.response :json # decode response bodies as JSON

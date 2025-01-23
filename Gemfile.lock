@@ -4,6 +4,7 @@ PATH
     neo4j-http (1.2.0.bsimpson)
       activesupport (>= 5.2)
       faraday (~> 2.0)
+      faraday-httpclient
       faraday-retry
       pry
 
@@ -23,10 +24,13 @@ GEM
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
+    faraday-httpclient (2.0.1)
+      httpclient (>= 2.2)
     faraday-net_http (3.4.0)
       net-http (>= 0.5.0)
     faraday-retry (2.2.1)
       faraday (~> 2.0)
+    httpclient (2.8.3)
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
     json (2.9.1)
