@@ -4,7 +4,7 @@ executors:
   ruby-latest:
     resource_class: small
     docker:
-      - image: cimg/ruby:2.7
+      - image: cimg/ruby:3.2.6-node
         environment:
           - BUNDLE_VERSION: "~> 1.17"
           - NEO4J_URL: "http://127.0.0.1:7474"
