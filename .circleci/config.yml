@@ -8,7 +8,7 @@ executors:
         environment:
           - BUNDLE_VERSION: "~> 1.17"
           - NEO4J_URL: "http://127.0.0.1:7474"
-      - image: neo4j:4.3.9-enterprise
+      - image: neo4j:4.4.12-enterprise
         environment:
           NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
           NEO4J_AUTH: "none"
@@ -53,11 +53,16 @@ jobs:
       - run:
           name: Wait for neo4j
           command: |
-            until `nc -z 127.0.0.1 7474`; do
-            echo 'Waiting for Neo4j container...'
+            for attempt in $(seq 1 120); do
+              if nc -z 127.0.0.1 7474; then
+                echo 'Neo4j container is up'
+                exit 0
+              fi
+              echo 'Waiting for Neo4j container...'
               sleep 1
             done
-            echo 'Neo4j container is up'
+            echo 'Neo4j container did not start in time'
+            exit 1
       - run:
           name: Run Tests
           command: bundle exec rake ci:specs
