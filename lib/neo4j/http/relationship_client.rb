@@ -25,7 +25,7 @@ module Neo4j
           CYPHER
         end
 
-        cypher = +<<-CYPHER
+        cypher = <<-CYPHER
           #{match_or_merge} (#{from_selector})
           #{match_or_merge} (#{to_selector})
           MERGE (from) - [#{relationship_selector}] - (to)
@@ -67,7 +67,7 @@ module Neo4j
       end
 
       def build_match_selector(name, data)
-        selector = +"#{name}:#{data.label}"
+        selector = "#{name}:#{data.label}"
         selector << " {#{data.key_name}: $#{name}.#{data.key_name}}" if data.key_name.present?
         selector
       end
