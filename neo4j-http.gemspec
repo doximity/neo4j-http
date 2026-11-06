@@ -26,5 +26,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "faraday", "~> 2.0"
   spec.add_runtime_dependency "faraday-httpclient"
   spec.add_runtime_dependency "faraday-retry"
-  spec.add_runtime_dependency "pry"
+  spec.add_runtime_dependency "pry", ">= 0.15"
 end
